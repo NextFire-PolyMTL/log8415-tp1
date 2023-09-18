@@ -12,6 +12,12 @@ python = "^3.11"
 flask = "^2.3.3"
 gunicorn = "^21.2.0"
 
+[tool.poetry.group.deploy.dependencies]
+boto3 = "^1.28.50"
+
+[tool.poetry.group.dev.dependencies]
+boto3-stubs = {extras = ["elbv2", "essential"], version = "^1.28.50"}
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
