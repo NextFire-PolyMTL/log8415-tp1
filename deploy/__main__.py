@@ -19,11 +19,33 @@ def create_instances():
     print(f"{instances_T2=}")
 
 
+
+def create_load_balancer():
+    ec2_res.create_subnet(
+        VpcId="",
+        AvailabilityZone="us-east-1a",
+    )
+
+    ec2_res.create_subnet(
+        VpcId="",
+        AvailabilityZone="us-east-1b",
+    )
+
+    lbs = elbv2_cli.create_load_balancer(
+        Name="LoadBalancerMain",
+        # Subnets=["subnet-07486aa1dafa304a6", "subnet-025483a1116699746"]
+        AvailabilityZones=["us-east-1a", "us-east-1b"] # type: ignore
+    )
+    print(f"{lbs=}")
+
+
 def main():
     create_instances()
+    create_load_balancer()
     pass
 
 
 if __name__ == "__main__":
     ec2_res = boto3.resource('ec2')
+    elbv2_cli = boto3.client('elbv2')
     main()
