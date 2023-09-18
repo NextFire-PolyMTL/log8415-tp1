@@ -2,11 +2,15 @@
 name = "log8415-tp1"
 version = "0.1.0"
 description = ""
-authors = ["NextFire <git@yuru.moe>"]
+authors = ["NextFire <git@yuru.moe>", "quentinguidee <contact@quentinguidee.dev>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+
+[tool.poetry.group.app.dependencies]
+flask = "^2.3.3"
+gunicorn = "^21.2.0"
 
 [build-system]
 requires = ["poetry-core"]
