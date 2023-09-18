@@ -23,6 +23,12 @@ poetry install --only deploy
 poetry run python3 -m deploy
 ```
 
+To terminate all resources:
+
+```sh
+poetry run python3 -m deploy.cleanup
+```
+
 ## Benchmarking
 
 ```sh
