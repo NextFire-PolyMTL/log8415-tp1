@@ -1,22 +1,37 @@
-import boto3
+from deploy.config import AWS_RES_NAME
+from deploy.utils import ec2_res, elbv2_cli
+
+
+def terminate_ec2():
+    instances = ec2_res.instances.filter(
+        Filters=[
+            {'Name': 'tag:Name', 'Values': [AWS_RES_NAME]},
+            {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
+        ]
+    )
+    for inst in instances:
+        print(f"Terminating instance: {inst}")
+        inst.terminate()
+
+
+def delete_lb():
+    lbs = elbv2_cli.describe_load_balancers()
+    for lb in lbs['LoadBalancers']:
+        name = lb.get('LoadBalancerName')
+        if name == AWS_RES_NAME:
+            arn = lb.get('LoadBalancerArn')
+            if arn is None:
+                raise RuntimeError('Load balancer ARN not found')
+            print(f"Deleting load balancer: {arn}")
+            elbv2_cli.delete_load_balancer(LoadBalancerArn=arn)
+            break
+    else:
+        raise RuntimeError('Load balancer not found')
 
 
 def main():
-    # Terminate EC2 instances
-    ec2_res = boto3.resource('ec2')
-    instances = ec2_res.instances.all()
-    for inst in instances:
-        if inst.state['Name'] in ('pending', 'running'):
-            print(f"Terminating instance: {inst}")
-            inst.terminate()
-
-    # Delete load balancers
-    elbv2_cli = boto3.client('elbv2')
-    lbs = elbv2_cli.describe_load_balancers()
-    for lb in lbs['LoadBalancers']:
-        arn = lb['LoadBalancerArn']
-        print(f"Deleting load balancer: {arn}")
-        elbv2_cli.delete_load_balancer(LoadBalancerArn=arn)
+    terminate_ec2()
+    delete_lb()
 
 
 if __name__ == '__main__':
