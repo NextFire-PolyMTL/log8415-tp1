@@ -2,6 +2,12 @@
 
 **Prerequisites:** [Python 3.11](https://www.python.org), [Poetry](https://python-poetry.org/) and [Docker](https://www.docker.com/)
 
+To setup the venv and install all dependencies:
+
+```sh
+poetry install
+```
+
 ## Web application
 
 ```sh
