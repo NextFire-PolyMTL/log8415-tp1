@@ -1,51 +1,51 @@
-import boto3
+from typing import TYPE_CHECKING
+
+from deploy.config import AWS_RES_NAME, IMAGE_ID
+from deploy.utils import ec2_res, elbv2_cli, get_default_vpc
+
+if TYPE_CHECKING:
+    from mypy_boto3_ec2.service_resource import Vpc
 
 
-def create_instances():
+def setup_instances():
     instances_M4 = ec2_res.create_instances(
-        InstanceType="m4.large",
-        ImageId="ami-053b0d53c279acc90", # ubuntu 22.04
+        InstanceType='m4.large',
+        ImageId=IMAGE_ID,
         MaxCount=5,
         MinCount=5,
+        TagSpecifications=[{
+            'ResourceType': 'instance',
+            'Tags': [
+                {'Key': 'Name', 'Value': AWS_RES_NAME},
+            ]
+        }]
     )
-    print(f"{instances_M4=}")
-
     instances_T2 = ec2_res.create_instances(
-        InstanceType="t2.large",
-        ImageId="ami-053b0d53c279acc90", # ubuntu 22.04
+        InstanceType='t2.large',
+        ImageId=IMAGE_ID,
         MaxCount=5,
         MinCount=5,
+        TagSpecifications=[{
+            'ResourceType': 'instance',
+            'Tags': [
+                {'Key': 'Name', 'Value': AWS_RES_NAME},
+            ]
+        }]
     )
-    print(f"{instances_T2=}")
+    print(instances_M4, instances_T2)
 
 
-
-def create_load_balancer():
-    ec2_res.create_subnet(
-        VpcId="",
-        AvailabilityZone="us-east-1a",
-    )
-
-    ec2_res.create_subnet(
-        VpcId="",
-        AvailabilityZone="us-east-1b",
-    )
-
-    lbs = elbv2_cli.create_load_balancer(
-        Name="LoadBalancerMain",
-        # Subnets=["subnet-07486aa1dafa304a6", "subnet-025483a1116699746"]
-        AvailabilityZones=["us-east-1a", "us-east-1b"] # type: ignore
-    )
-    print(f"{lbs=}")
+def setup_load_balancer(vpc: 'Vpc'):
+    subnets = [subnet.id for subnet in vpc.subnets.all()]
+    lb = elbv2_cli.create_load_balancer(Name=AWS_RES_NAME, Subnets=subnets)
+    print(lb)
 
 
 def main():
-    create_instances()
-    create_load_balancer()
-    pass
+    vpc = get_default_vpc()
+    setup_instances()
+    setup_load_balancer(vpc)
 
 
-if __name__ == "__main__":
-    ec2_res = boto3.resource('ec2')
-    elbv2_cli = boto3.client('elbv2')
+if __name__ == '__main__':
     main()
