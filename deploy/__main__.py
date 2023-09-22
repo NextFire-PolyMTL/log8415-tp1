@@ -6,9 +6,26 @@ from deploy.utils import ec2_res, elbv2_cli, get_default_vpc
 if TYPE_CHECKING:
     from mypy_boto3_ec2.service_resource import Vpc
 
+    if DEV:
+        instances = ec2_res.create_instances(
+            InstanceType='t2.micro',
+            ImageId=IMAGE_ID,
+            MaxCount=1,
+            MinCount=1,
+            Monitoring={'Enabled': True},
+            TagSpecifications=[{
+                'ResourceType': 'instance',
+                'Tags': [
+                    {'Key': 'Name', 'Value': AWS_RES_NAME},
+                ]
+            }],
+        )
 
 def setup_instances():
     instances_M4 = ec2_res.create_instances(
+        print(instances)
+        return
+
         InstanceType='m4.large',
         ImageId=IMAGE_ID,
         MaxCount=5,
