@@ -30,9 +30,12 @@ def delete_lb():
 
 
 def delete_security_groups():
-    sg = ec2_res.SecurityGroup(AWS_SECURITY_GROUP_NAME)
-    print(f"Deleting security group: {sg}")
-    sg.delete()
+    security_groups = ec2_res.security_groups.filter(
+        GroupNames=[AWS_SECURITY_GROUP_NAME],
+    )
+    print(f"Deleting security group: {security_groups}")
+    for sg in security_groups:
+        sg.delete()
 
 
 def main():
