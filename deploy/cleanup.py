@@ -26,7 +26,7 @@ def delete_lb():
             elbv2_cli.delete_load_balancer(LoadBalancerArn=arn)
             break
     else:
-        raise RuntimeError('Load balancer not found')
+        print('Load balancer not found')
 
 
 def delete_security_groups():
