@@ -1,4 +1,4 @@
-from deploy.config import AWS_RES_NAME
+from deploy.config import AWS_RES_NAME, AWS_SECURITY_GROUP_NAME
 from deploy.utils import ec2_res, elbv2_cli
 
 
@@ -29,9 +29,16 @@ def delete_lb():
         raise RuntimeError('Load balancer not found')
 
 
+def delete_security_groups():
+    sg = ec2_res.SecurityGroup(AWS_SECURITY_GROUP_NAME)
+    print(f"Deleting security group: {sg}")
+    sg.delete()
+
+
 def main():
     terminate_ec2()
     delete_lb()
+    delete_security_groups()
 
 
 if __name__ == '__main__':
