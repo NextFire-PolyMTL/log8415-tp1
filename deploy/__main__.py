@@ -28,9 +28,13 @@ def setup_security_groups(vpc: 'Vpc'):
                 "FromPort": 22,
                 "ToPort": 22,
                 "IpProtocol": "tcp",
-                "IpRanges": [
-                    {"CidrIp": "0.0.0.0/0", "Description": "internet"},
-                ],
+                "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+            },
+            {
+                "FromPort": 80,
+                "ToPort": 80,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
             },
         ],
     )
