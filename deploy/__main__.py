@@ -33,6 +33,7 @@ def setup_instances(sg: 'SecurityGroup'):
         instances = ec2_res.create_instances(
             KeyName=get_default_key_pair().key_name,
             SecurityGroupIds=[sg.id],
+            UserData=SCRIPT,
             InstanceType='t2.micro',
             ImageId=IMAGE_ID,
             MaxCount=1,
@@ -56,6 +57,7 @@ def setup_instances(sg: 'SecurityGroup'):
     instances_m4 = ec2_res.create_instances(
         KeyName=get_default_key_pair().key_name,
         SecurityGroupIds=[sg.id],
+        UserData=SCRIPT,
         InstanceType='m4.large',
         ImageId=IMAGE_ID,
         MaxCount=5,
@@ -67,10 +69,10 @@ def setup_instances(sg: 'SecurityGroup'):
             ]
         }]
     )
-    instances_T2 = ec2_res.create_instances(
     instances_t2 = ec2_res.create_instances(
         KeyName=get_default_key_pair().key_name,
         SecurityGroupIds=[sg.id],
+        UserData=SCRIPT,
         InstanceType='t2.large',
         ImageId=IMAGE_ID,
         MaxCount=5,

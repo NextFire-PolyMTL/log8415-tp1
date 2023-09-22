@@ -28,3 +28,15 @@ def get_default_key_pair():
         raise RuntimeError('Default key pair not found') from e
     print(key_pair)
     return key_pair
+
+
+# Source: https://snapcraft.io/docker
+SCRIPT = """#!/bin/bash
+sudo snap install docker    
+
+sudo addgroup --system docker
+sudo adduser $USER docker
+newgrp docker
+sudo snap disable docker
+sudo snap enable docker
+"""
