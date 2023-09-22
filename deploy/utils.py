@@ -19,17 +19,6 @@ def get_default_vpc():
     return vpc
 
 
-def get_default_key_pair():
-    key_pairs = ec2_res.key_pairs.filter(
-        KeyNames=[AWS_KEY_PAIR_NAME])
-    try:
-        key_pair = list(key_pairs)[0]
-    except Exception as e:
-        raise RuntimeError('Default key pair not found') from e
-    print(key_pair)
-    return key_pair
-
-
 # Source: https://snapcraft.io/docker
 SCRIPT = """#!/bin/bash
 sudo snap install docker    

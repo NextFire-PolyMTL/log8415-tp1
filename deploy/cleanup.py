@@ -1,4 +1,4 @@
-from deploy.config import AWS_RES_NAME, AWS_SECURITY_GROUP_NAME
+from deploy.config import AWS_RES_NAME, AWS_SECURITY_GROUP_NAME, AWS_KEY_PAIR_NAME
 from deploy.utils import ec2_res, elbv2_cli
 
 
@@ -12,6 +12,7 @@ def terminate_ec2():
     for inst in instances:
         print(f"Terminating instance: {inst}")
         inst.terminate()
+        inst.wait_until_terminated()
 
 
 def delete_lb():
@@ -29,18 +30,34 @@ def delete_lb():
         print('Load balancer not found')
 
 
+def delete_key_pair():
+    try:
+        key_pairs = ec2_res.key_pairs.filter(
+            KeyNames=[AWS_KEY_PAIR_NAME],
+        )
+        print(f"Deleting key pair: {key_pairs}")
+        for kp in key_pairs:
+            kp.delete()
+    except Exception as e:
+        print(e)
+
+
 def delete_security_groups():
-    security_groups = ec2_res.security_groups.filter(
-        GroupNames=[AWS_SECURITY_GROUP_NAME],
-    )
-    print(f"Deleting security group: {security_groups}")
-    for sg in security_groups:
-        sg.delete()
+    try:
+        security_groups = ec2_res.security_groups.filter(
+            GroupNames=[AWS_SECURITY_GROUP_NAME],
+        )
+        print(f"Deleting security group: {security_groups}")
+        for sg in security_groups:
+            sg.delete()
+    except Exception as e:
+        print(e)
 
 
 def main():
     terminate_ec2()
     delete_lb()
+    delete_key_pair()
     delete_security_groups()
 
 
