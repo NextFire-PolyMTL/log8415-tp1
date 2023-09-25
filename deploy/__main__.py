@@ -1,4 +1,5 @@
 import io
+import logging
 import tarfile
 from typing import TYPE_CHECKING
 
@@ -10,6 +11,7 @@ from deploy.config import (
     AWS_SECURITY_GROUP_NAME,
     DEV,
     IMAGE_ID,
+    LOG_LEVEL,
 )
 from deploy.utils import SCRIPT, ec2_res, elbv2_cli, get_default_vpc
 
@@ -20,6 +22,8 @@ if TYPE_CHECKING:
         SecurityGroup,
         Vpc,
     )
+
+logger = logging.getLogger(__name__)
 
 
 def setup_key_pair():
@@ -110,9 +114,9 @@ def setup_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
     for instance in instances:
         instance.wait_until_running()
         instance.reload()
-        print(instance.public_ip_address)
+        logger.info(instance.public_ip_address)
 
-    print(instances)
+    logger.info(instances)
     return instances
 
 
@@ -123,7 +127,7 @@ def setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
         Subnets=subnets,
         SecurityGroups=[sg.id],
     )
-    print(lb)
+    logger.info(lb)
 
 
 def upload_flask_app(instance: 'Instance', i: int):
@@ -146,7 +150,7 @@ def upload_flask_app(instance: 'Instance', i: int):
                 f.seek(0)
                 sftp.putfo(f, 'src.tar.gz')
 
-        print('Building docker image...')
+        logger.info('Building docker image...')
         exec_and_wait(
             ssh_client, r"""
             mkdir -p src
@@ -155,7 +159,7 @@ def upload_flask_app(instance: 'Instance', i: int):
             sudo docker build -t app -f app/Dockerfile .
             """)
 
-        print('Running docker container...')
+        logger.info('Running docker container...')
         exec_and_wait(
             ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} app')
 
@@ -164,9 +168,9 @@ def exec_and_wait(ssh_client: 'SSHClient', cmd: str):
     stdin, stdout, stderr = ssh_client.exec_command(cmd)
     status = stdout.channel.recv_exit_status()
     if status != 0:
-        print('An error occurred')
+        logger.error('An error occurred')
         for line in stderr.readlines():
-            print(line)
+            logger.error(line)
         ssh_client.close()
         raise RuntimeError('An error occurred')
 
@@ -191,4 +195,5 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=LOG_LEVEL)
     main()

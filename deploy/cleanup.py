@@ -1,5 +1,14 @@
-from deploy.config import AWS_RES_NAME, AWS_SECURITY_GROUP_NAME, AWS_KEY_PAIR_NAME
+import logging
+
+from deploy.config import (
+    AWS_KEY_PAIR_NAME,
+    AWS_RES_NAME,
+    AWS_SECURITY_GROUP_NAME,
+    LOG_LEVEL,
+)
 from deploy.utils import ec2_res, elbv2_cli
+
+logger = logging.getLogger(__name__)
 
 
 def terminate_ec2():
@@ -10,7 +19,7 @@ def terminate_ec2():
         ]
     )
     for inst in instances:
-        print(f"Terminating instance: {inst}")
+        logger.info(f"Terminating instance: {inst}")
         inst.terminate()
         inst.wait_until_terminated()
 
@@ -23,11 +32,11 @@ def delete_lb():
             arn = lb.get('LoadBalancerArn')
             if arn is None:
                 raise RuntimeError('Load balancer ARN not found')
-            print(f"Deleting load balancer: {arn}")
+            logger.info(f"Deleting load balancer: {arn}")
             elbv2_cli.delete_load_balancer(LoadBalancerArn=arn)
             break
     else:
-        print('Load balancer not found')
+        logger.error('Load balancer not found')
 
 
 def delete_key_pair():
@@ -35,11 +44,11 @@ def delete_key_pair():
         key_pairs = ec2_res.key_pairs.filter(
             KeyNames=[AWS_KEY_PAIR_NAME],
         )
-        print(f"Deleting key pair: {key_pairs}")
+        logger.info(f"Deleting key pair: {key_pairs}")
         for kp in key_pairs:
             kp.delete()
     except Exception as e:
-        print(e)
+        logger.exception(e)
 
 
 def delete_security_groups():
@@ -47,11 +56,11 @@ def delete_security_groups():
         security_groups = ec2_res.security_groups.filter(
             GroupNames=[AWS_SECURITY_GROUP_NAME],
         )
-        print(f"Deleting security group: {security_groups}")
+        logger.info(f"Deleting security group: {security_groups}")
         for sg in security_groups:
             sg.delete()
     except Exception as e:
-        print(e)
+        logger.exception(e)
 
 
 def main():
@@ -62,4 +71,5 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=LOG_LEVEL)
     main()

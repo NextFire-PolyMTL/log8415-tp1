@@ -1,3 +1,4 @@
+LOG_LEVEL = 'INFO'
 AWS_RES_NAME = 'Lab1'
 AWS_KEY_PAIR_NAME = 'keypair_lab1'
 AWS_SECURITY_GROUP_NAME = 'security_group_lab1'
