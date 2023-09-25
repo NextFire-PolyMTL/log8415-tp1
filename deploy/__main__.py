@@ -2,9 +2,11 @@ from typing import TYPE_CHECKING
 
 from deploy.config import AWS_RES_NAME, AWS_KEY_PAIR_NAME, AWS_SECURITY_GROUP_NAME, IMAGE_ID, DEV
 from deploy.utils import ec2_res, elbv2_cli, get_default_vpc, SCRIPT
+from paramiko import SSHClient, RSAKey, AutoAddPolicy
+
 
 if TYPE_CHECKING:
-    from mypy_boto3_ec2.service_resource import Vpc, SecurityGroup, KeyPairInfo
+    from mypy_boto3_ec2.service_resource import Vpc, SecurityGroup, KeyPairInfo, Instance
 
 
 def setup_key_pair() -> 'KeyPairInfo':
@@ -41,12 +43,12 @@ def setup_security_group(vpc: 'Vpc'):
     return sg
 
 
-def setup_instances(sg: 'SecurityGroup', kp: 'KeyPairInfo'):
+def setup_instances(sg: 'SecurityGroup', kp: 'KeyPairInfo') -> list['Instance']:
     if DEV:
         instances = ec2_res.create_instances(
             KeyName=kp.key_name,
             SecurityGroupIds=[sg.id],
-            # UserData=SCRIPT,
+            UserData=SCRIPT,
             InstanceType='t2.micro',
             ImageId=IMAGE_ID,
             MaxCount=1,
@@ -59,45 +61,46 @@ def setup_instances(sg: 'SecurityGroup', kp: 'KeyPairInfo'):
                 ]
             }],
         )
-        for instance in instances:
-            instance.wait_until_running()
-            instance.reload()
-            print(instance.public_ip_address)
+    else:
+        instances_m4 = ec2_res.create_instances(
+            KeyName=kp.key_name,
+            SecurityGroupIds=[sg.id],
+            UserData=SCRIPT,
+            InstanceType='m4.large',
+            ImageId=IMAGE_ID,
+            MaxCount=5,
+            MinCount=5,
+            TagSpecifications=[{
+                'ResourceType': 'instance',
+                'Tags': [
+                    {'Key': 'Name', 'Value': AWS_RES_NAME},
+                ]
+            }]
+        )
+        instances_t2 = ec2_res.create_instances(
+            KeyName=kp.key_name,
+            SecurityGroupIds=[sg.id],
+            UserData=SCRIPT,
+            InstanceType='t2.large',
+            ImageId=IMAGE_ID,
+            MaxCount=5,
+            MinCount=5,
+            TagSpecifications=[{
+                'ResourceType': 'instance',
+                'Tags': [
+                    {'Key': 'Name', 'Value': AWS_RES_NAME},
+                ]
+            }]
+        )
+        instances = instances_m4 + instances_t2
 
-        print(instances)
-        return
+    for instance in instances:
+        instance.wait_until_running()
+        instance.reload()
+        print(instance.public_ip_address)
 
-    instances_m4 = ec2_res.create_instances(
-        KeyName=kp.key_name,
-        SecurityGroupIds=[sg.id],
-        UserData=SCRIPT,
-        InstanceType='m4.large',
-        ImageId=IMAGE_ID,
-        MaxCount=5,
-        MinCount=5,
-        TagSpecifications=[{
-            'ResourceType': 'instance',
-            'Tags': [
-                {'Key': 'Name', 'Value': AWS_RES_NAME},
-            ]
-        }]
-    )
-    instances_t2 = ec2_res.create_instances(
-        KeyName=kp.key_name,
-        SecurityGroupIds=[sg.id],
-        UserData=SCRIPT,
-        InstanceType='t2.large',
-        ImageId=IMAGE_ID,
-        MaxCount=5,
-        MinCount=5,
-        TagSpecifications=[{
-            'ResourceType': 'instance',
-            'Tags': [
-                {'Key': 'Name', 'Value': AWS_RES_NAME},
-            ]
-        }]
-    )
-    print(instances_m4, instances_t2)
+    print(instances)
+    return instances
 
 
 def setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
@@ -110,12 +113,69 @@ def setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
     print(lb)
 
 
+def upload_flask_app(instance: 'Instance', i: int):
+    ssh_key = RSAKey.from_private_key_file(f'{AWS_KEY_PAIR_NAME}.pem')
+
+    ssh_client = SSHClient()
+    ssh_client.set_missing_host_key_policy(AutoAddPolicy())
+    ssh_client.connect(
+        hostname=instance.public_ip_address,
+        username='ubuntu',
+        pkey=ssh_key,
+    )
+
+    sftp = ssh_client.open_sftp()
+    try:
+        sftp.mkdir('flask_app')
+    except IOError:
+        pass
+    try:
+        sftp.mkdir('flask_app/app')
+    except IOError:
+        pass
+    sftp.put('../app/app.py', 'flask_app/app/app.py')
+    sftp.put('../app/Dockerfile', 'flask_app/Dockerfile')
+    sftp.put('../poetry.lock', 'flask_app/poetry.lock')
+    sftp.put('../pyproject.toml', 'flask_app/pyproject.toml')
+    sftp.close()
+
+    print('Building docker image...')
+    exec_and_wait(ssh_client, 'cd flask_app; sudo docker build -t flask_app .')
+
+    print('Running docker container...')
+    exec_and_wait(ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} flask_app')
+
+    ssh_client.close()
+
+
+def exec_and_wait(ssh_client: 'SSHClient', cmd: str):
+    stdin, stdout, stderr = ssh_client.exec_command(cmd)
+    status = stdout.channel.recv_exit_status()
+    if status != 0:
+        print('An error occurred')
+        for line in stderr.readlines():
+            print(line)
+        ssh_client.close()
+        raise RuntimeError('An error occurred')
+
+
 def main():
     vpc = get_default_vpc()
     kp = setup_key_pair()
     sg = setup_security_group(vpc)
-    setup_instances(sg, kp)
+    instances = setup_instances(sg, kp)
     setup_load_balancer(sg, vpc)
+
+    # Use this to use existing instance instead of creating new ones
+    # instances = ec2_res.instances.filter(
+    #     Filters=[
+    #         {'Name': 'tag:Name', 'Values': [AWS_RES_NAME]},
+    #         {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
+    #     ]
+    # )
+
+    for i, inst in enumerate(instances):
+        upload_flask_app(inst, i)
 
 
 if __name__ == '__main__':

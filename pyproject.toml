@@ -7,6 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+paramiko = "^3.3.1"
 
 [tool.poetry.group.app.dependencies]
 flask = "^2.3.3"

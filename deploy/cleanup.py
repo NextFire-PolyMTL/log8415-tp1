@@ -56,8 +56,8 @@ def delete_security_groups():
 
 def main():
     terminate_ec2()
-    delete_lb()
     delete_key_pair()
+    delete_lb()
     delete_security_groups()
 
 
