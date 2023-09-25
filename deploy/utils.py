@@ -1,7 +1,5 @@
 import boto3
 
-from deploy.config import AWS_KEY_PAIR_NAME
-
 ec2_cli = boto3.client('ec2')
 ec2_res = boto3.resource('ec2')
 elbv2_cli = boto3.client('elbv2')
@@ -20,8 +18,9 @@ def get_default_vpc():
 
 
 # Source: https://snapcraft.io/docker
-SCRIPT = """#!/bin/bash
-sudo snap install docker    
+SCRIPT = r"""
+#!/bin/bash
+sudo snap install docker
 
 sudo addgroup --system docker
 sudo adduser $USER docker

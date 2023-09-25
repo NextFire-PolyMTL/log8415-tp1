@@ -1,3 +1,5 @@
+import io
+import tarfile
 from typing import TYPE_CHECKING
 
 from paramiko import AutoAddPolicy, RSAKey, SSHClient
@@ -135,28 +137,27 @@ def upload_flask_app(instance: 'Instance', i: int):
             pkey=ssh_key,
         )
 
-        sftp = ssh_client.open_sftp()
-        try:
-            sftp.mkdir('flask_app')
-        except IOError:
-            pass
-        try:
-            sftp.mkdir('flask_app/app')
-        except IOError:
-            pass
-        sftp.put('../app/app.py', 'flask_app/app/app.py')
-        sftp.put('../app/Dockerfile', 'flask_app/Dockerfile')
-        sftp.put('../poetry.lock', 'flask_app/poetry.lock')
-        sftp.put('../pyproject.toml', 'flask_app/pyproject.toml')
-        sftp.close()
+        with ssh_client.open_sftp() as sftp:
+            with io.BytesIO() as f:
+                with tarfile.open(fileobj=f, mode='w:gz') as tar:
+                    tar.add('pyproject.toml')
+                    tar.add('poetry.lock')
+                    tar.add('app/')
+                f.seek(0)
+                sftp.putfo(f, 'src.tar.gz')
 
         print('Building docker image...')
         exec_and_wait(
-            ssh_client, 'cd flask_app; sudo docker build -t flask_app .')
+            ssh_client, r"""
+            mkdir -p src
+            tar xzf src.tar.gz -C src/
+            cd src/
+            sudo docker build -t app -f app/Dockerfile .
+            """)
 
         print('Running docker container...')
         exec_and_wait(
-            ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} flask_app')
+            ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} app')
 
 
 def exec_and_wait(ssh_client: 'SSHClient', cmd: str):
