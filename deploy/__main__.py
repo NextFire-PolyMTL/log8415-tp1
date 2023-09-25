@@ -16,7 +16,7 @@ def setup_key_pair() -> 'KeyPairInfo':
     return key_pair
 
 
-def setup_security_groups(vpc: 'Vpc'):
+def setup_security_group(vpc: 'Vpc'):
     sg = ec2_res.create_security_group(
         GroupName=AWS_SECURITY_GROUP_NAME,
         Description=AWS_SECURITY_GROUP_NAME,
@@ -46,7 +46,7 @@ def setup_instances(sg: 'SecurityGroup', kp: 'KeyPairInfo'):
         instances = ec2_res.create_instances(
             KeyName=kp.key_name,
             SecurityGroupIds=[sg.id],
-            UserData=SCRIPT,
+            # UserData=SCRIPT,
             InstanceType='t2.micro',
             ImageId=IMAGE_ID,
             MaxCount=1,
@@ -100,18 +100,22 @@ def setup_instances(sg: 'SecurityGroup', kp: 'KeyPairInfo'):
     print(instances_m4, instances_t2)
 
 
-def setup_load_balancer(vpc: 'Vpc'):
+def setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
     subnets = [subnet.id for subnet in vpc.subnets.all()]
-    lb = elbv2_cli.create_load_balancer(Name=AWS_RES_NAME, Subnets=subnets)
+    lb = elbv2_cli.create_load_balancer(
+        Name=AWS_RES_NAME,
+        Subnets=subnets,
+        SecurityGroups=[sg.id],
+    )
     print(lb)
 
 
 def main():
     vpc = get_default_vpc()
     kp = setup_key_pair()
-    sg = setup_security_groups(vpc)
+    sg = setup_security_group(vpc)
     setup_instances(sg, kp)
-    setup_load_balancer(vpc)
+    setup_load_balancer(sg, vpc)
 
 
 if __name__ == '__main__':
