@@ -1,15 +1,26 @@
 from typing import TYPE_CHECKING
 
-from deploy.config import AWS_RES_NAME, AWS_KEY_PAIR_NAME, AWS_SECURITY_GROUP_NAME, IMAGE_ID, DEV
-from deploy.utils import ec2_res, elbv2_cli, get_default_vpc, SCRIPT
-from paramiko import SSHClient, RSAKey, AutoAddPolicy
+from paramiko import AutoAddPolicy, RSAKey, SSHClient
 
+from deploy.config import (
+    AWS_KEY_PAIR_NAME,
+    AWS_RES_NAME,
+    AWS_SECURITY_GROUP_NAME,
+    DEV,
+    IMAGE_ID,
+)
+from deploy.utils import SCRIPT, ec2_res, elbv2_cli, get_default_vpc
 
 if TYPE_CHECKING:
-    from mypy_boto3_ec2.service_resource import Vpc, SecurityGroup, KeyPairInfo, Instance
+    from mypy_boto3_ec2.service_resource import (
+        Instance,
+        KeyPair,
+        SecurityGroup,
+        Vpc,
+    )
 
 
-def setup_key_pair() -> 'KeyPairInfo':
+def setup_key_pair():
     key_pair = ec2_res.create_key_pair(KeyName=AWS_KEY_PAIR_NAME)
 
     with open(f'{AWS_KEY_PAIR_NAME}.pem', 'w') as f:
@@ -43,7 +54,7 @@ def setup_security_group(vpc: 'Vpc'):
     return sg
 
 
-def setup_instances(sg: 'SecurityGroup', kp: 'KeyPairInfo') -> list['Instance']:
+def setup_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
     if DEV:
         instances = ec2_res.create_instances(
             KeyName=kp.key_name,
@@ -143,7 +154,8 @@ def upload_flask_app(instance: 'Instance', i: int):
     exec_and_wait(ssh_client, 'cd flask_app; sudo docker build -t flask_app .')
 
     print('Running docker container...')
-    exec_and_wait(ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} flask_app')
+    exec_and_wait(
+        ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} flask_app')
 
     ssh_client.close()
 
