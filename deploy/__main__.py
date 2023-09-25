@@ -127,37 +127,36 @@ def setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
 def upload_flask_app(instance: 'Instance', i: int):
     ssh_key = RSAKey.from_private_key_file(f'{AWS_KEY_PAIR_NAME}.pem')
 
-    ssh_client = SSHClient()
-    ssh_client.set_missing_host_key_policy(AutoAddPolicy())
-    ssh_client.connect(
-        hostname=instance.public_ip_address,
-        username='ubuntu',
-        pkey=ssh_key,
-    )
+    with SSHClient() as ssh_client:
+        ssh_client.set_missing_host_key_policy(AutoAddPolicy())
+        ssh_client.connect(
+            hostname=instance.public_ip_address,
+            username='ubuntu',
+            pkey=ssh_key,
+        )
 
-    sftp = ssh_client.open_sftp()
-    try:
-        sftp.mkdir('flask_app')
-    except IOError:
-        pass
-    try:
-        sftp.mkdir('flask_app/app')
-    except IOError:
-        pass
-    sftp.put('../app/app.py', 'flask_app/app/app.py')
-    sftp.put('../app/Dockerfile', 'flask_app/Dockerfile')
-    sftp.put('../poetry.lock', 'flask_app/poetry.lock')
-    sftp.put('../pyproject.toml', 'flask_app/pyproject.toml')
-    sftp.close()
+        sftp = ssh_client.open_sftp()
+        try:
+            sftp.mkdir('flask_app')
+        except IOError:
+            pass
+        try:
+            sftp.mkdir('flask_app/app')
+        except IOError:
+            pass
+        sftp.put('../app/app.py', 'flask_app/app/app.py')
+        sftp.put('../app/Dockerfile', 'flask_app/Dockerfile')
+        sftp.put('../poetry.lock', 'flask_app/poetry.lock')
+        sftp.put('../pyproject.toml', 'flask_app/pyproject.toml')
+        sftp.close()
 
-    print('Building docker image...')
-    exec_and_wait(ssh_client, 'cd flask_app; sudo docker build -t flask_app .')
+        print('Building docker image...')
+        exec_and_wait(
+            ssh_client, 'cd flask_app; sudo docker build -t flask_app .')
 
-    print('Running docker container...')
-    exec_and_wait(
-        ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} flask_app')
-
-    ssh_client.close()
+        print('Running docker container...')
+        exec_and_wait(
+            ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} flask_app')
 
 
 def exec_and_wait(ssh_client: 'SSHClient', cmd: str):
