@@ -7,7 +7,7 @@ import backoff
 import requests
 from paramiko import AutoAddPolicy, RSAKey, SSHClient, ssh_exception
 
-from deploy.config import AWS_KEY_PAIR_NAME
+from deploy.config import AWS_KEY_PAIR_NAME, SSH_USERNAME
 from deploy.utils import SSHExecError, ssh_exec
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ def bootstrap_instance(instance: 'Instance', instance_number: int):
         ssh_client.set_missing_host_key_policy(AutoAddPolicy())
         ssh_client.connect(
             hostname=instance.public_ip_address,
-            username='ubuntu',
+            username=SSH_USERNAME,
             pkey=ssh_key,
         )
         _setup_docker(ssh_client)
