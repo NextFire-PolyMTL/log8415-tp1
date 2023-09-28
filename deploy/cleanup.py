@@ -1,14 +1,22 @@
 import logging
 
+import backoff
+from botocore.exceptions import ClientError
+
 from deploy.config import (
     AWS_KEY_PAIR_NAME,
     AWS_RES_NAME,
     AWS_SECURITY_GROUP_NAME,
     LOG_LEVEL,
 )
-from deploy.utils import ec2_res, elbv2_cli
+from deploy.utils import ec2_res, elbv2_cli, get_error_code
 
 logger = logging.getLogger(__name__)
+
+
+def is_not_depviolation(e: Exception):
+    return ((not isinstance(e, ClientError)) or
+            (get_error_code(e) != 'DependencyViolation'))
 
 
 def terminate_ec2():
@@ -21,7 +29,6 @@ def terminate_ec2():
     for inst in instances:
         logger.info(f"Terminating instance: {inst}")
         inst.terminate()
-        inst.wait_until_terminated()
 
 
 def delete_lb():
@@ -35,8 +42,6 @@ def delete_lb():
             logger.info(f"Deleting load balancer: {arn}")
             elbv2_cli.delete_load_balancer(LoadBalancerArn=arn)
             break
-    else:
-        logger.error('Load balancer not found')
 
 
 def delete_key_pair():
@@ -44,23 +49,28 @@ def delete_key_pair():
         key_pairs = ec2_res.key_pairs.filter(
             KeyNames=[AWS_KEY_PAIR_NAME],
         )
-        logger.info(f"Deleting key pair: {key_pairs}")
         for kp in key_pairs:
+            logger.info(f"Deleting key pair: {kp}")
             kp.delete()
-    except Exception as e:
-        logger.exception(e)
+    except ClientError as e:
+        error_code = get_error_code(e)
+        if error_code != 'InvalidKeyPair.NotFound':
+            raise
 
 
+@backoff.on_exception(backoff.expo, ClientError, giveup=is_not_depviolation)
 def delete_security_groups():
     try:
         security_groups = ec2_res.security_groups.filter(
             GroupNames=[AWS_SECURITY_GROUP_NAME],
         )
-        logger.info(f"Deleting security group: {security_groups}")
         for sg in security_groups:
+            logger.info(f"Deleting security group: {sg}")
             sg.delete()
-    except Exception as e:
-        logger.exception(e)
+    except ClientError as e:
+        error_code = get_error_code(e)
+        if error_code != 'InvalidGroup.NotFound':
+            raise
 
 
 def main():

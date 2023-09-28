@@ -1,6 +1,7 @@
 import logging
 
 import boto3
+from botocore.exceptions import ClientError
 from paramiko import SSHClient
 
 logger = logging.getLogger(__name__)
@@ -31,4 +32,10 @@ def ssh_exec(ssh_client: SSHClient, cmd: str):
     status = stdout.channel.recv_exit_status()
     logger.info('\n' + stdout.read().decode().strip())
     if status != 0:
-        raise SSHExecError('_ssh_exec failed', stderr.read().decode())
+        raise SSHExecError(stderr.read().decode())
+
+
+def get_error_code(e: ClientError):
+    error = e.response.get('Error', {})
+    error_code = error.get('Code', 'Unknown')
+    return error_code
