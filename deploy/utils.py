@@ -17,5 +17,5 @@ def get_default_vpc():
     except Exception as e:
         raise RuntimeError('Default VPC not found') from e
     vpc = ec2_res.Vpc(default_vpc_id)
-    logger.info(vpc)
+    logger.debug(vpc)
     return vpc

@@ -25,12 +25,13 @@ def setup_infra():
     vpc = get_default_vpc()
     kp = _setup_key_pair()
     sg = _setup_security_group(vpc)
-    instances = _setup_instances(sg, kp)
+    instances = _launch_instances(sg, kp)
     _setup_load_balancer(sg, vpc)
     return instances
 
 
 def _setup_key_pair():
+    logger.info('Setting up key pair')
     key_pair = ec2_res.create_key_pair(KeyName=AWS_KEY_PAIR_NAME)
 
     with open(f'{AWS_KEY_PAIR_NAME}.pem', 'w') as f:
@@ -40,6 +41,7 @@ def _setup_key_pair():
 
 
 def _setup_security_group(vpc: 'Vpc'):
+    logger.info('Setting up security group')
     sg = ec2_res.create_security_group(
         GroupName=AWS_SECURITY_GROUP_NAME,
         Description=AWS_SECURITY_GROUP_NAME,
@@ -64,7 +66,8 @@ def _setup_security_group(vpc: 'Vpc'):
     return sg
 
 
-def _setup_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
+def _launch_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
+    logger.info('Launching instances')
     if DEV:
         instances = ec2_res.create_instances(
             KeyName=kp.key_name,
@@ -113,19 +116,21 @@ def _setup_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
         instances = instances_m4 + instances_t2
 
     for instance in instances:
+        logger.info(f'Waiting for {instance=} to be ready')
         instance.wait_until_running()
         instance.reload()
-        logger.info(instance.public_ip_address)
+        logger.debug(instance.public_ip_address)
 
     logger.info(instances)
     return instances
 
 
 def _setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
+    logger.info('Setting up load balancer')
     subnets = [subnet.id for subnet in vpc.subnets.all()]
     lb = elbv2_cli.create_load_balancer(
         Name=AWS_RES_NAME,
         Subnets=subnets,
         SecurityGroups=[sg.id],
     )
-    logger.info(lb)
+    logger.debug(lb)

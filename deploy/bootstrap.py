@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
                       (ssh_exception.NoValidConnectionsError, TimeoutError),
                       max_time=300)
 def bootstrap_instance(instance: 'Instance', i: int):
+    logger.info(f"Bootstrapping instance #{i+1} {instance=}")
     ssh_key = RSAKey.from_private_key_file(f'{AWS_KEY_PAIR_NAME}.pem')
     with SSHClient() as ssh_client:
         ssh_client.set_missing_host_key_policy(AutoAddPolicy())
