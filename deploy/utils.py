@@ -19,16 +19,3 @@ def get_default_vpc():
     vpc = ec2_res.Vpc(default_vpc_id)
     logger.info(vpc)
     return vpc
-
-
-# Source: https://snapcraft.io/docker
-SCRIPT = r"""
-#!/bin/bash
-sudo snap install docker
-
-sudo addgroup --system docker
-sudo adduser $USER docker
-newgrp docker
-sudo snap disable docker
-sudo snap enable docker
-"""

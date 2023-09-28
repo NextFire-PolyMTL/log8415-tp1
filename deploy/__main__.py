@@ -1,10 +1,7 @@
-import io
 import logging
-import tarfile
 from typing import TYPE_CHECKING
 
-from paramiko import AutoAddPolicy, RSAKey, SSHClient
-
+from deploy.bootstrap import bootstrap_instance
 from deploy.config import (
     AWS_KEY_PAIR_NAME,
     AWS_RES_NAME,
@@ -13,7 +10,7 @@ from deploy.config import (
     IMAGE_ID,
     LOG_LEVEL,
 )
-from deploy.utils import SCRIPT, ec2_res, elbv2_cli, get_default_vpc
+from deploy.utils import ec2_res, elbv2_cli, get_default_vpc
 
 if TYPE_CHECKING:
     from mypy_boto3_ec2.service_resource import (
@@ -65,7 +62,6 @@ def setup_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
         instances = ec2_res.create_instances(
             KeyName=kp.key_name,
             SecurityGroupIds=[sg.id],
-            UserData=SCRIPT,
             InstanceType='t2.micro',
             ImageId=IMAGE_ID,
             MaxCount=1,
@@ -82,7 +78,6 @@ def setup_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
         instances_m4 = ec2_res.create_instances(
             KeyName=kp.key_name,
             SecurityGroupIds=[sg.id],
-            UserData=SCRIPT,
             InstanceType='m4.large',
             ImageId=IMAGE_ID,
             MaxCount=5,
@@ -97,7 +92,6 @@ def setup_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
         instances_t2 = ec2_res.create_instances(
             KeyName=kp.key_name,
             SecurityGroupIds=[sg.id],
-            UserData=SCRIPT,
             InstanceType='t2.large',
             ImageId=IMAGE_ID,
             MaxCount=5,
@@ -130,51 +124,6 @@ def setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
     logger.info(lb)
 
 
-def upload_flask_app(instance: 'Instance', i: int):
-    ssh_key = RSAKey.from_private_key_file(f'{AWS_KEY_PAIR_NAME}.pem')
-
-    with SSHClient() as ssh_client:
-        ssh_client.set_missing_host_key_policy(AutoAddPolicy())
-        ssh_client.connect(
-            hostname=instance.public_ip_address,
-            username='ubuntu',
-            pkey=ssh_key,
-        )
-
-        with ssh_client.open_sftp() as sftp:
-            with io.BytesIO() as f:
-                with tarfile.open(fileobj=f, mode='w:gz') as tar:
-                    tar.add('pyproject.toml')
-                    tar.add('poetry.lock')
-                    tar.add('app/')
-                f.seek(0)
-                sftp.putfo(f, 'src.tar.gz')
-
-        logger.info('Building docker image...')
-        exec_and_wait(
-            ssh_client, r"""
-            mkdir -p src
-            tar xzf src.tar.gz -C src/
-            cd src/
-            sudo docker build -t app -f app/Dockerfile .
-            """)
-
-        logger.info('Running docker container...')
-        exec_and_wait(
-            ssh_client, f'sudo docker run -d -p 80:8000 -e INSTANCE_NUMBER={i+1} app')
-
-
-def exec_and_wait(ssh_client: 'SSHClient', cmd: str):
-    stdin, stdout, stderr = ssh_client.exec_command(cmd)
-    status = stdout.channel.recv_exit_status()
-    if status != 0:
-        logger.error('An error occurred')
-        for line in stderr.readlines():
-            logger.error(line)
-        ssh_client.close()
-        raise RuntimeError('An error occurred')
-
-
 def main():
     vpc = get_default_vpc()
     kp = setup_key_pair()
@@ -191,7 +140,7 @@ def main():
     # )
 
     for i, inst in enumerate(instances):
-        upload_flask_app(inst, i)
+        bootstrap_instance(inst, i)
 
 
 if __name__ == '__main__':

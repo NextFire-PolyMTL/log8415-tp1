@@ -19,6 +19,11 @@ gunicorn = "^21.2.0"
 [tool.poetry.group.deploy.dependencies]
 boto3 = "^1.28.50"
 paramiko = "^3.3.1"
+backoff = "^2.2.1"
+requests = "^2.31.0"
+
+[tool.poetry.group.bench.dependencies]
+requests = "^2.31.0"
 
 [tool.poetry.group.dev.dependencies]
 boto3-stubs = {extras = ["elbv2", "essential"], version = "^1.28.50"}
