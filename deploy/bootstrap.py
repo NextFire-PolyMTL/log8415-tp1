@@ -15,7 +15,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@backoff.on_exception(backoff.expo, ssh_exception.NoValidConnectionsError, max_time=300)
+@backoff.on_exception(backoff.expo,
+                      (ssh_exception.NoValidConnectionsError, TimeoutError),
+                      max_time=300)
 def bootstrap_instance(instance: 'Instance', i: int):
     ssh_key = RSAKey.from_private_key_file(f'{AWS_KEY_PAIR_NAME}.pem')
     with SSHClient() as ssh_client:
@@ -33,7 +35,10 @@ def bootstrap_instance(instance: 'Instance', i: int):
 
 def _setup_docker(ssh_client: SSHClient):
     logger.info('Setting up docker')
-    _ssh_exec(ssh_client, r'sudo snap install docker')
+    _ssh_exec(ssh_client,
+              # force restart (and wait) snapd to be sure it is ready to use
+              r'sudo systemctl restart snapd.seeded.service && '
+              r'sudo snap install docker')
 
 
 def _build_app(ssh_client: SSHClient):
@@ -48,11 +53,9 @@ def _build_app(ssh_client: SSHClient):
             sftp.putfo(f, 'src.tar.gz')
     _ssh_exec(
         ssh_client, r"""
-            rm -rf src/
             mkdir -p src
             tar xzf src.tar.gz -C src/
-            cd src/
-            sudo docker build -t app -f app/Dockerfile .
+            sudo docker build -t app -f src/app/Dockerfile src/
             """)
 
 
@@ -74,6 +77,6 @@ def _check_app(instance: 'Instance'):
 def _ssh_exec(ssh_client: SSHClient, cmd: str):
     stdin, stdout, stderr = ssh_client.exec_command(cmd, get_pty=True)
     status = stdout.channel.recv_exit_status()
-    logger.info(stdout.read().decode())
+    logger.debug(stdout.read().decode())
     if status != 0:
         raise RuntimeError('_ssh_exec failed', stderr.read().decode())
