@@ -1,6 +1,7 @@
 import logging
 
 import boto3
+from paramiko import SSHClient
 
 logger = logging.getLogger(__name__)
 
@@ -19,3 +20,15 @@ def get_default_vpc():
     vpc = ec2_res.Vpc(default_vpc_id)
     logger.debug(vpc)
     return vpc
+
+
+class SSHExecError(RuntimeError):
+    pass
+
+
+def ssh_exec(ssh_client: SSHClient, cmd: str):
+    stdin, stdout, stderr = ssh_client.exec_command(cmd, get_pty=True)
+    status = stdout.channel.recv_exit_status()
+    logger.info('\n' + stdout.read().decode().strip())
+    if status != 0:
+        raise SSHExecError('_ssh_exec failed', stderr.read().decode())
