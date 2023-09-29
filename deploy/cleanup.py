@@ -44,6 +44,18 @@ def delete_lb():
             break
 
 
+def delete_target_groups():
+    target_groups = elbv2_cli.describe_target_groups()
+    for tg in target_groups['TargetGroups']:
+        name = tg.get('TargetGroupName')
+        if name is not None and name.startswith(AWS_RES_NAME):
+            arn = tg.get('TargetGroupArn')
+            if arn is None:
+                raise RuntimeError('Target group ARN not found')
+            logger.info(f"Deleting target group: {arn}")
+            elbv2_cli.delete_target_group(TargetGroupArn=arn)
+
+
 def delete_key_pair():
     try:
         key_pairs = ec2_res.key_pairs.filter(
@@ -75,8 +87,9 @@ def delete_security_groups():
 
 def main():
     terminate_ec2()
-    delete_key_pair()
     delete_lb()
+    delete_target_groups()
+    delete_key_pair()
     delete_security_groups()
 
 

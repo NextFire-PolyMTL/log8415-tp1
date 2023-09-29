@@ -1,4 +1,5 @@
 import logging
+from itertools import chain
 
 from deploy.bootstrap import bootstrap_instance
 from deploy.config import LOG_LEVEL
@@ -20,7 +21,7 @@ def main():
     # )
 
     logger.info('Bootstrapping instances')
-    for i, inst in enumerate(instances):
+    for i, inst in enumerate(chain.from_iterable(instances)):
         bootstrap_instance(inst, i)
 
 

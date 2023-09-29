@@ -1,4 +1,5 @@
 import logging
+from itertools import chain
 from typing import TYPE_CHECKING
 
 from deploy.config import (
@@ -13,12 +14,7 @@ from deploy.config import (
 from deploy.utils import ec2_res, elbv2_cli, get_default_vpc
 
 if TYPE_CHECKING:
-    from mypy_boto3_ec2.service_resource import (
-        Instance,
-        KeyPair,
-        SecurityGroup,
-        Vpc,
-    )
+    from mypy_boto3_ec2.service_resource import Instance, KeyPair, SecurityGroup, Vpc
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +23,9 @@ def setup_infra():
     vpc = get_default_vpc()
     kp = _setup_key_pair()
     sg = _setup_security_group(vpc)
-    instances = _launch_instances(sg, kp)
-    _setup_load_balancer(sg, vpc)
-    return instances
+    instances_m4, instances_t2 = _launch_instances(sg, kp)
+    _setup_load_balancer(sg, vpc, instances_m4, instances_t2)
+    return instances_m4, instances_t2
 
 
 def _setup_key_pair():
@@ -68,7 +64,7 @@ def _setup_security_group(vpc: 'Vpc'):
     return sg
 
 
-def _launch_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
+def _launch_instances(sg: 'SecurityGroup', kp: 'KeyPair'):
     logger.info('Launching instances')
     instances_m4 = ec2_res.create_instances(
         KeyName=kp.key_name,
@@ -98,19 +94,18 @@ def _launch_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
             ]
         }]
     )
-    instances = instances_m4 + instances_t2
-
-    for instance in instances:
+    for instance in chain(instances_m4, instances_t2):
         logger.info(f'Waiting for {instance=} to be ready')
         instance.wait_until_running()
         instance.reload()
         logger.debug(instance.public_ip_address)
-
-    logger.info(instances)
-    return instances
+    return instances_m4, instances_t2
 
 
-def _setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
+def _setup_load_balancer(sg: 'SecurityGroup',
+                         vpc: 'Vpc',
+                         cluster1_instances: list['Instance'],
+                         cluster2_instances: list['Instance']):
     logger.info('Setting up load balancer')
     subnets = [subnet.id for subnet in vpc.subnets.all()]
     lb = elbv2_cli.create_load_balancer(
@@ -118,4 +113,66 @@ def _setup_load_balancer(sg: 'SecurityGroup', vpc: 'Vpc'):
         Subnets=subnets,
         SecurityGroups=[sg.id],
     )
+    lb_arn = lb['LoadBalancers'][0].get('LoadBalancerArn')
+    if lb_arn is None:
+        raise RuntimeError('Load balancer ARN not found')
     logger.debug(lb)
+    logger.info('Setting up target groups')
+    tg1_arn = _create_target_group(
+        f'{AWS_RES_NAME}-1', vpc, cluster1_instances)
+    tg2_arn = _create_target_group(
+        f'{AWS_RES_NAME}-2', vpc, cluster2_instances)
+    logger.info('Setting up listener')
+    listener = elbv2_cli.create_listener(
+        LoadBalancerArn=lb_arn,
+        Protocol='HTTP',
+        Port=80,
+        DefaultActions=[
+            {
+                "Type": "fixed-response",
+                "FixedResponseConfig": {
+                    "StatusCode": "404"
+                }
+            }
+        ],
+    )
+    listener_arn = listener['Listeners'][0].get('ListenerArn')
+    if listener_arn is None:
+        raise RuntimeError('Listener ARN not found')
+    elbv2_cli.create_rule(
+        ListenerArn=listener_arn,
+        Conditions=[
+            {'Field': 'path-pattern', 'Values': ['/cluster1', '/cluster1/*']},
+        ],
+        Priority=1,
+        Actions=[
+            {'Type': 'forward', 'TargetGroupArn': tg1_arn},
+        ],
+    )
+    elbv2_cli.create_rule(
+        ListenerArn=listener_arn,
+        Conditions=[
+            {'Field': 'path-pattern', 'Values': ['/cluste21', '/cluster2/*']},
+        ],
+        Priority=2,
+        Actions=[
+            {'Type': 'forward', 'TargetGroupArn': tg2_arn},
+        ],
+    )
+    return lb
+
+
+def _create_target_group(name: str, vpc: 'Vpc', instances: list['Instance']):
+    resp = elbv2_cli.create_target_group(
+        Name=name,
+        Protocol='HTTP',
+        Port=80,
+        VpcId=vpc.id,
+    )
+    arn = resp['TargetGroups'][0].get('TargetGroupArn')
+    if arn is None:
+        raise RuntimeError('Target group ARN not found')
+    elbv2_cli.register_targets(TargetGroupArn=arn, Targets=[
+        {'Id': inst.id, 'Port': 80} for inst in instances
+    ])
+    return arn
