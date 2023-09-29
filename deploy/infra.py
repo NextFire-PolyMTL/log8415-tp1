@@ -7,6 +7,8 @@ from deploy.config import (
     AWS_SECURITY_GROUP_NAME,
     DEV,
     IMAGE_ID,
+    M4_L_NB,
+    T2_L_NB,
 )
 from deploy.utils import ec2_res, elbv2_cli, get_default_vpc
 
@@ -68,52 +70,35 @@ def _setup_security_group(vpc: 'Vpc'):
 
 def _launch_instances(sg: 'SecurityGroup', kp: 'KeyPair') -> list['Instance']:
     logger.info('Launching instances')
-    if DEV:
-        instances = ec2_res.create_instances(
-            KeyName=kp.key_name,
-            SecurityGroupIds=[sg.id],
-            InstanceType='t2.micro',
-            ImageId=IMAGE_ID,
-            MaxCount=1,
-            MinCount=1,
-            Monitoring={'Enabled': True},
-            TagSpecifications=[{
-                'ResourceType': 'instance',
-                'Tags': [
-                    {'Key': 'Name', 'Value': AWS_RES_NAME},
-                ]
-            }],
-        )
-    else:
-        instances_m4 = ec2_res.create_instances(
-            KeyName=kp.key_name,
-            SecurityGroupIds=[sg.id],
-            InstanceType='m4.large',
-            ImageId=IMAGE_ID,
-            MaxCount=5,
-            MinCount=5,
-            TagSpecifications=[{
-                'ResourceType': 'instance',
-                'Tags': [
-                    {'Key': 'Name', 'Value': AWS_RES_NAME},
-                ]
-            }]
-        )
-        instances_t2 = ec2_res.create_instances(
-            KeyName=kp.key_name,
-            SecurityGroupIds=[sg.id],
-            InstanceType='t2.large',
-            ImageId=IMAGE_ID,
-            MaxCount=5,
-            MinCount=5,
-            TagSpecifications=[{
-                'ResourceType': 'instance',
-                'Tags': [
-                    {'Key': 'Name', 'Value': AWS_RES_NAME},
-                ]
-            }]
-        )
-        instances = instances_m4 + instances_t2
+    instances_m4 = ec2_res.create_instances(
+        KeyName=kp.key_name,
+        SecurityGroupIds=[sg.id],
+        InstanceType='m4.large',
+        ImageId=IMAGE_ID,
+        MaxCount=M4_L_NB if not DEV else 1,
+        MinCount=M4_L_NB if not DEV else 1,
+        TagSpecifications=[{
+            'ResourceType': 'instance',
+            'Tags': [
+                {'Key': 'Name', 'Value': AWS_RES_NAME},
+            ]
+        }]
+    )
+    instances_t2 = ec2_res.create_instances(
+        KeyName=kp.key_name,
+        SecurityGroupIds=[sg.id],
+        InstanceType='t2.large',
+        ImageId=IMAGE_ID,
+        MaxCount=T2_L_NB if not DEV else 1,
+        MinCount=T2_L_NB if not DEV else 1,
+        TagSpecifications=[{
+            'ResourceType': 'instance',
+            'Tags': [
+                {'Key': 'Name', 'Value': AWS_RES_NAME},
+            ]
+        }]
+    )
+    instances = instances_m4 + instances_t2
 
     for instance in instances:
         logger.info(f'Waiting for {instance=} to be ready')
