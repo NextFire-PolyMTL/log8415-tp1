@@ -16,9 +16,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@backoff.on_exception(backoff.expo,
-                      (ssh_exception.NoValidConnectionsError, TimeoutError),
-                      max_time=300)
+@backoff.on_exception(backoff.constant,
+                      (ssh_exception.NoValidConnectionsError, TimeoutError))
 def bootstrap_instance(instance: 'Instance', instance_number: int):
     logger.info(f"Bootstrapping instance #{instance_number+1} {instance=}")
     ssh_key = RSAKey.from_private_key_file(f'{AWS_KEY_PAIR_NAME}.pem')
@@ -36,9 +35,7 @@ def bootstrap_instance(instance: 'Instance', instance_number: int):
     _check_app(instance)
 
 
-@backoff.on_exception(backoff.constant,
-                      SSHExecError,
-                      max_tries=5)
+@backoff.on_exception(backoff.constant, SSHExecError)
 def _setup_docker(ssh_client: SSHClient):
     logger.info('Setting up docker')
     ssh_exec(ssh_client, r'sudo snap install docker')
@@ -56,9 +53,7 @@ def _push_sources(ssh_client: SSHClient):
             sftp.putfo(f, 'src.tar.gz')
 
 
-@backoff.on_exception(backoff.constant,
-                      SSHExecError,
-                      max_tries=5)
+@backoff.on_exception(backoff.constant, SSHExecError)
 def _build_app(ssh_client: SSHClient):
     logger.info('Building app')
     ssh_exec(
@@ -69,9 +64,7 @@ def _build_app(ssh_client: SSHClient):
             """)
 
 
-@backoff.on_exception(backoff.constant,
-                      SSHExecError,
-                      max_tries=5)
+@backoff.on_exception(backoff.constant, SSHExecError)
 def _start_app(ssh_client: SSHClient, instance_number: int):
     logger.info('Start app')
     ssh_exec(
@@ -83,9 +76,7 @@ def _start_app(ssh_client: SSHClient, instance_number: int):
         """)
 
 
-@backoff.on_exception(backoff.expo,
-                      (requests.HTTPError, requests.ConnectionError),
-                      max_time=10)
+@backoff.on_exception(backoff.constant, (requests.HTTPError, requests.ConnectionError))
 def _check_app(instance: 'Instance'):
     request_url = f'http://{instance.public_ip_address}'
     logger.info(f'Checking app at {request_url}')

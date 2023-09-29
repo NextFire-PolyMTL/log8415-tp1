@@ -14,9 +14,9 @@ from deploy.utils import ec2_res, elbv2_cli, get_error_code
 logger = logging.getLogger(__name__)
 
 
-def is_not_depviolation(e: Exception):
-    return ((not isinstance(e, ClientError)) or
-            (get_error_code(e) != 'DependencyViolation'))
+def giveup(e: Exception):
+    return not (isinstance(e, ClientError) and
+                (get_error_code(e) in ('DependencyViolation', 'ResourceInUse')))
 
 
 def terminate_ec2():
@@ -44,6 +44,7 @@ def delete_lb():
             break
 
 
+@backoff.on_exception(backoff.constant, ClientError, giveup=giveup)
 def delete_target_groups():
     target_groups = elbv2_cli.describe_target_groups()
     for tg in target_groups['TargetGroups']:
@@ -70,7 +71,7 @@ def delete_key_pair():
             raise
 
 
-@backoff.on_exception(backoff.expo, ClientError, giveup=is_not_depviolation)
+@backoff.on_exception(backoff.constant, ClientError, giveup=giveup)
 def delete_security_groups():
     try:
         security_groups = ec2_res.security_groups.filter(
