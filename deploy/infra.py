@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from itertools import chain
 from typing import TYPE_CHECKING
@@ -11,7 +12,7 @@ from deploy.config import (
     M4_L_NB,
     T2_L_NB,
 )
-from deploy.utils import ec2_res, elbv2_cli, get_default_vpc
+from deploy.utils import ec2_res, elbv2_cli, get_default_vpc, wait_instance
 
 if TYPE_CHECKING:
     from mypy_boto3_ec2.service_resource import Instance, KeyPair, SecurityGroup, Vpc
@@ -19,11 +20,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def setup_infra():
+async def setup_infra():
     vpc = get_default_vpc()
     kp = _setup_key_pair()
     sg = _setup_security_group(vpc)
     instances_m4, instances_t2 = _launch_instances(sg, kp)
+    async with asyncio.TaskGroup() as tg:
+        for inst in chain(instances_m4, instances_t2):
+            tg.create_task(asyncio.to_thread(wait_instance, inst))
     _setup_load_balancer(sg, vpc, instances_m4, instances_t2)
     return instances_m4, instances_t2
 
@@ -94,11 +98,6 @@ def _launch_instances(sg: 'SecurityGroup', kp: 'KeyPair'):
             ]
         }]
     )
-    for instance in chain(instances_m4, instances_t2):
-        logger.info(f'Waiting for {instance=} to be ready')
-        instance.wait_until_running()
-        instance.reload()
-        logger.debug(instance.public_ip_address)
     return instances_m4, instances_t2
 
 
@@ -113,15 +112,21 @@ def _setup_load_balancer(sg: 'SecurityGroup',
         Subnets=subnets,
         SecurityGroups=[sg.id],
     )
+    logger.debug(lb)
     lb_arn = lb['LoadBalancers'][0].get('LoadBalancerArn')
     if lb_arn is None:
         raise RuntimeError('Load balancer ARN not found')
-    logger.debug(lb)
+    lb_dns = lb['LoadBalancers'][0].get('DNSName')
+    if lb_dns is None:
+        raise RuntimeError('Load balancer DNS not found')
+    logger.info(f'Load balancer DNS: {lb_dns}')
+
     logger.info('Setting up target groups')
     tg1_arn = _create_target_group(
         f'{AWS_RES_NAME}-1', vpc, cluster1_instances)
     tg2_arn = _create_target_group(
         f'{AWS_RES_NAME}-2', vpc, cluster2_instances)
+
     logger.info('Setting up listener')
     listener = elbv2_cli.create_listener(
         LoadBalancerArn=lb_arn,
@@ -152,14 +157,15 @@ def _setup_load_balancer(sg: 'SecurityGroup',
     elbv2_cli.create_rule(
         ListenerArn=listener_arn,
         Conditions=[
-            {'Field': 'path-pattern', 'Values': ['/cluste21', '/cluster2/*']},
+            {'Field': 'path-pattern', 'Values': ['/cluster2', '/cluster2/*']},
         ],
         Priority=2,
         Actions=[
             {'Type': 'forward', 'TargetGroupArn': tg2_arn},
         ],
     )
-    return lb
+
+    return lb_arn
 
 
 def _create_target_group(name: str, vpc: 'Vpc', instances: list['Instance']):

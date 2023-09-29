@@ -1,8 +1,12 @@
 import logging
+from typing import TYPE_CHECKING
 
 import boto3
 from botocore.exceptions import ClientError
 from paramiko import SSHClient
+
+if TYPE_CHECKING:
+    from mypy_boto3_ec2.service_resource import Instance
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +25,12 @@ def get_default_vpc():
     vpc = ec2_res.Vpc(default_vpc_id)
     logger.debug(vpc)
     return vpc
+
+
+def wait_instance(instance: 'Instance'):
+    logger.info(f'Waiting for {instance=} to be ready')
+    instance.wait_until_running()
+    instance.reload()
 
 
 class SSHExecError(RuntimeError):

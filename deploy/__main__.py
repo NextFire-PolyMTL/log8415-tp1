@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from itertools import chain
 
@@ -8,9 +9,9 @@ from deploy.infra import setup_infra
 logger = logging.getLogger(__name__)
 
 
-def main():
+async def main():
     logger.info('Setting up infrastructure')
-    instances = setup_infra()
+    instances = await setup_infra()
 
     # Use this to use existing instance instead of creating new ones
     # instances = ec2_res.instances.filter(
@@ -21,10 +22,11 @@ def main():
     # )
 
     logger.info('Bootstrapping instances')
-    for i, inst in enumerate(chain.from_iterable(instances)):
-        bootstrap_instance(inst, i)
+    async with asyncio.TaskGroup() as tg:
+        for i, inst in enumerate(chain.from_iterable(instances)):
+            tg.create_task(asyncio.to_thread(bootstrap_instance, inst, i))
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=LOG_LEVEL)
-    main()
+    asyncio.run(main())
