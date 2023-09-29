@@ -2,11 +2,12 @@ import os
 
 from flask import Flask
 
-INSTANCE_NUMBER = os.environ.get("INSTANCE_NUMBER", "unknown")
+INSTANCE_ID = os.environ.get("INSTANCE_ID", "unknown")
+ROUTE_RULE = os.environ.get("ROUTE_RULE", "/")
 
 app = Flask(__name__)
 
 
-@app.route("/")
+@app.route(ROUTE_RULE)
 def hello_world():
-    return f"Instance number {INSTANCE_NUMBER} is responding now!"
+    return f"Instance ID {INSTANCE_ID} is responding now!"

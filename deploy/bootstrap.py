@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 @backoff.on_exception(backoff.constant,
                       (ssh_exception.NoValidConnectionsError, TimeoutError))
-def bootstrap_instance(instance: 'Instance', instance_number: int):
-    logger.info(f"Bootstrapping instance #{instance_number+1} {instance=}")
+def bootstrap_instance(instance: 'Instance', route_rule: str):
+    logger.info(f"Bootstrapping {instance=}")
     ssh_key = RSAKey.from_private_key_file(f'{AWS_KEY_PAIR_NAME}.pem')
     with SSHClient() as ssh_client:
         ssh_client.set_missing_host_key_policy(AutoAddPolicy())
@@ -31,8 +31,8 @@ def bootstrap_instance(instance: 'Instance', instance_number: int):
         _setup_docker(ssh_client)
         _push_sources(ssh_client)
         _build_app(ssh_client)
-        _start_app(ssh_client, instance_number)
-    _check_app(instance)
+        _start_app(ssh_client, instance.id, route_rule)
+    _check_app(instance, route_rule)
 
 
 @backoff.on_exception(backoff.constant, SSHExecError)
@@ -65,20 +65,22 @@ def _build_app(ssh_client: SSHClient):
 
 
 @backoff.on_exception(backoff.constant, SSHExecError)
-def _start_app(ssh_client: SSHClient, instance_number: int):
+def _start_app(ssh_client: SSHClient, instance_id: str, route_rule: str):
     logger.info('Start app')
     ssh_exec(
         ssh_client,
         rf"""
         sudo docker rm -f app
         sudo docker run --name app -d -p 80:8000 \
-            -e INSTANCE_NUMBER={instance_number+1} app
+            -e INSTANCE_ID={instance_id} \
+            -e ROUTE_RULE={route_rule} \
+            app
         """)
 
 
 @backoff.on_exception(backoff.constant, (requests.HTTPError, requests.ConnectionError))
-def _check_app(instance: 'Instance'):
-    request_url = f'http://{instance.public_ip_address}'
+def _check_app(instance: 'Instance', route_rule: str):
+    request_url = f'http://{instance.public_ip_address}{route_rule}'
     logger.info(f'Checking app at {request_url}')
     response = requests.get(request_url)
     response.raise_for_status()
