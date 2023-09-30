@@ -174,6 +174,7 @@ def _create_target_group(name: str, vpc: 'Vpc', instances: list['Instance']):
         Protocol='HTTP',
         Port=80,
         VpcId=vpc.id,
+        HealthCheckPath='/health',
     )
     arn = resp['TargetGroups'][0].get('TargetGroupArn')
     if arn is None:
