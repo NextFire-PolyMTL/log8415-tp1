@@ -12,7 +12,7 @@ from deploy.config import (
     M4_L_NB,
     T2_L_NB,
 )
-from deploy.utils import ec2_res, elbv2_cli, get_default_vpc, wait_instance
+from deploy.utils import ec2_cli, ec2_res, elbv2_cli, get_default_vpc, wait_instance
 
 if TYPE_CHECKING:
     from mypy_boto3_ec2.service_resource import Instance, KeyPair, SecurityGroup, Vpc
@@ -70,34 +70,52 @@ def _setup_security_group(vpc: 'Vpc'):
 
 def _launch_instances(sg: 'SecurityGroup', kp: 'KeyPair'):
     logger.info('Launching instances')
-    instances_m4 = ec2_res.create_instances(
-        KeyName=kp.key_name,
-        SecurityGroupIds=[sg.id],
-        InstanceType='m4.large',
-        ImageId=IMAGE_ID,
-        MaxCount=M4_L_NB if not DEV else 1,
-        MinCount=M4_L_NB if not DEV else 1,
-        TagSpecifications=[{
-            'ResourceType': 'instance',
-            'Tags': [
-                {'Key': 'Name', 'Value': AWS_RES_NAME},
-            ]
-        }]
-    )
-    instances_t2 = ec2_res.create_instances(
-        KeyName=kp.key_name,
-        SecurityGroupIds=[sg.id],
-        InstanceType='t2.large',
-        ImageId=IMAGE_ID,
-        MaxCount=T2_L_NB if not DEV else 1,
-        MinCount=T2_L_NB if not DEV else 1,
-        TagSpecifications=[{
-            'ResourceType': 'instance',
-            'Tags': [
-                {'Key': 'Name', 'Value': AWS_RES_NAME},
-            ]
-        }]
-    )
+
+    avail_zones = [zone['ZoneName']
+                   for zone
+                   in ec2_cli.describe_availability_zones()['AvailabilityZones']
+                   if 'ZoneName' in zone]
+
+    instances_m4 = []
+    for i in range(M4_L_NB if not DEV else 1):
+        zone = avail_zones[i % len(avail_zones)]
+        instances = ec2_res.create_instances(
+            KeyName=kp.key_name,
+            SecurityGroupIds=[sg.id],
+            InstanceType='m4.large',
+            ImageId=IMAGE_ID,
+            MaxCount=1,
+            MinCount=1,
+            Placement={'AvailabilityZone': zone},
+            TagSpecifications=[{
+                'ResourceType': 'instance',
+                'Tags': [
+                    {'Key': 'Name', 'Value': AWS_RES_NAME},
+                ]
+            }]
+        )
+        instances_m4 += instances
+
+    instances_t2 = []
+    for i in range(T2_L_NB if not DEV else 1):
+        zone = avail_zones[-1 - i % len(avail_zones)]  # reverse order
+        instances = ec2_res.create_instances(
+            KeyName=kp.key_name,
+            SecurityGroupIds=[sg.id],
+            InstanceType='t2.large',
+            ImageId=IMAGE_ID,
+            MaxCount=1,
+            MinCount=1,
+            Placement={'AvailabilityZone': zone},
+            TagSpecifications=[{
+                'ResourceType': 'instance',
+                'Tags': [
+                    {'Key': 'Name', 'Value': AWS_RES_NAME},
+                ]
+            }]
+        )
+        instances_t2 += instances
+
     return instances_m4, instances_t2
 
 
