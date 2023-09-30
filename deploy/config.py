@@ -1,6 +1,8 @@
+import os
+
 LOG_LEVEL = 'INFO'
 
-DEV = True
+DEV = os.environ.get('DEV') == '1'
 
 AWS_RES_NAME = 'Lab1'
 
