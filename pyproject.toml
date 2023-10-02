@@ -10,7 +10,7 @@ authors = [
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "~3.11"
 
 [tool.poetry.group.app.dependencies]
 flask = "^2.3.3"
