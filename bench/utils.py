@@ -10,6 +10,11 @@ elbv2_cli = boto3.client('elbv2')
 cw_cli = boto3.client('cloudwatch')
 
 
+def wait_lb():
+    waiter = elbv2_cli.get_waiter('load_balancer_available')
+    waiter.wait(Names=[LB_NAME])
+
+
 def get_lb_arn_dns():
     lbs = elbv2_cli.describe_load_balancers(Names=[LB_NAME])
     if len(lbs['LoadBalancers']) == 0:
