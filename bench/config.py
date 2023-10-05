@@ -1,0 +1,3 @@
+LOG_LEVEL = 'INFO'
+
+LB_NAME = 'Lab1'

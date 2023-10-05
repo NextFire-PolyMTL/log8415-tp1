@@ -46,5 +46,5 @@ Or with Docker:
 
 ```sh
 docker build -t bench -f .docker/bench.Dockerfile .
-docker run --rm -it bench
+docker run --rm -it -v $HOME/.aws:/root/.aws:ro  -v $PWD/results:/src/results bench
 ```
