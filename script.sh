@@ -21,5 +21,8 @@ docker build -t bench -f .docker/bench.Dockerfile .
 # >> - Results directory
 docker run --rm -it -v $HOME/.aws:/root/.aws:ro  -v $PWD/results:/src/results bench
 
+# Open results folder
+open results/
+
 # Cleanup all AWS resources at the end
 # poetry run python3 -m deploy.cleanup
