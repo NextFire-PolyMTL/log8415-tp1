@@ -18,7 +18,7 @@ poetry run gunicorn app:app
 Or with Docker:
 
 ```sh
-docker build -t app -f app/Dockerfile .
+docker build -t app -f .docker/app.Dockerfile .
 docker run --rm -it -p 8000:8000 app
 ```
 
@@ -45,6 +45,6 @@ poetry run python3 -m bench
 Or with Docker:
 
 ```sh
-docker build -t bench -f bench/Dockerfile .
+docker build -t bench -f .docker/bench.Dockerfile .
 docker run --rm -it bench
 ```

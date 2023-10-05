@@ -49,6 +49,7 @@ def _push_sources(ssh_client: SSHClient):
                 tar.add('pyproject.toml')
                 tar.add('poetry.lock')
                 tar.add('app/')
+                tar.add('.docker/app.Dockerfile')
             f.seek(0)
             sftp.putfo(f, 'src.tar.gz')
 
@@ -60,7 +61,7 @@ def _build_app(ssh_client: SSHClient):
         ssh_client, r"""
             rm -rf src && mkdir -p src
             tar xzf src.tar.gz -C src/
-            sudo docker build -t app -f src/app/Dockerfile src/
+            sudo docker build -t app -f src/.docker/app.Dockerfile src/
             """)
 
 
