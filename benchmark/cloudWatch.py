@@ -496,23 +496,23 @@ def save_targets_metrics(cloud_watch, target_group_arn, load_balancer_arn, targe
 
     data = healthy_host_count_metric(cloud_watch, tgstring=tgstring, lbstring=lbstring2, StartTime=StartTime,
                                    EndTime=EndTime)
-    save_data("cloudwatch/targets/target_grp_" + str(target_grp_number) + "/healthy_host_count_metric.json", data)
+    save_data("metrics/cloudwatch/targets/target_grp_" + str(target_grp_number) + "/healthy_host_count_metric.json", data)
 
     data = request_count_per_target_metric(cloud_watch, tgstring=tgstring, lbstring=lbstring2, StartTime=StartTime,
                                         EndTime=EndTime)
-    save_data("cloudwatch/targets/target_grp_" + str(target_grp_number) + "/request_count_per_target_metric.json", data)
+    save_data("metrics/cloudwatch/targets/target_grp_" + str(target_grp_number) + "/request_count_per_target_metric.json", data)
 
     data = target_connection_error_count_metric(cloud_watch, tgstring=tgstring, lbstring=lbstring2, StartTime=StartTime,
                                              EndTime=EndTime)
-    save_data("cloudwatch/targets/target_grp_" + str(target_grp_number) + "/target_connection_error_count_metric.json",
+    save_data("metrics/cloudwatch/targets/target_grp_" + str(target_grp_number) + "/target_connection_error_count_metric.json",
               data)
 
     data = target_response_time_metric(cloud_watch, tgstring=tgstring, lbstring=lbstring2, StartTime=StartTime,
                                      EndTime=EndTime)
-    save_data("cloudwatch/targets/target_grp_" + str(target_grp_number) + "/target_response_time_metric.json", data)
+    save_data("metrics/cloudwatch/targets/target_grp_" + str(target_grp_number) + "/target_response_time_metric.json", data)
 
     data = unhealthy_host_count_metric(cloud_watch, tgstring=tgstring, lbstring=lbstring2, StartTime=StartTime,
                                      EndTime=EndTime)
-    save_data("cloudwatch/targets/target_grp_" + str(target_grp_number) + "/unhealthy_host_count_metric.json", data)
+    save_data("metrics/cloudwatch/targets/target_grp_" + str(target_grp_number) + "/unhealthy_host_count_metric.json", data)
 
     print("Enregistrement des metrics des Targets dans CloudWatch :::: done ....")
