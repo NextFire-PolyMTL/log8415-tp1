@@ -262,7 +262,7 @@ def HTTPCode_Target_2XX_Count_metric(cloudwatch_client, lbstring, StartTime, End
 
 
 ###################################################################################################################
-#                                             Run metrics loaders
+#                                             Get metrics
 ###################################################################################################################
 
 def save_load_balancer_metrics(cloud_watch, load_balancer_arn):
@@ -278,4 +278,25 @@ def save_load_balancer_metrics(cloud_watch, load_balancer_arn):
 
     # get RequestCount metric
     data = RequestCount_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
-    save_data("cloudwatch/load_balancer/request_count_metric.json", data)
+    save_data("metrics/cloudwatch/load_balancer/request_count_metric.json", data)
+
+    data = ActiveConnectionCount_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
+    save_data("metrics/cloudwatch/load_balancer/active_connection_count_metric.json", data)
+
+    data = ConsumedLCUs_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
+    save_data("metrics/cloudwatch/load_balancer/consumed_lcus_metric.json", data)
+
+    data = HTTP_Redirect_Count_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
+    save_data("metrics/cloudwatch/load_balancer/http_redirect_count_metric.json", data)
+
+    data = LB_RequestCount_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
+    save_data("metrics/cloudwatch/load_balancer/request_count_metric.json", data)
+
+    data = RuleEvaluations_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
+    save_data("metrics/cloudwatch/load_balancer/rule_evaluations_metric.json", data)
+
+    data = ProcessedBytes_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
+    save_data("metrics/cloudwatch/load_balancer/processed_bytes_metric.json", data)
+
+    data = HTTPCode_Target_2XX_Count_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
+    save_data("metrics/cloudwatch/load_balancer/http_code_target_2xx_metric.json", data)

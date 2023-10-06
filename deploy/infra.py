@@ -207,11 +207,6 @@ def _create_target_group(name: str, vpc: 'Vpc', instances: list['Instance']):
     ])
     return arn
 
-
-# sg: 'SecurityGroup',
-#                          vpc: 'Vpc',
-#                          cluster1_instances: list['Instance'],
-#                          cluster2_instances: list['Instance']
 def _setup_cloud_watch():
     logger.info('Setting up cloud watch')
     return cw_cli
