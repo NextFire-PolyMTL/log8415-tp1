@@ -8,9 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import orjson
 
-from bench.config import CLUSTER_1_TARGET_NAME, CLUSTER_2_TARGET_NAME
-from bench.constants import GRAPH_INFO
-from bench.utils import cw_cli, specifier_from_arn
+from bench.config import GRAPH_INFO
+from bench.utils import cw_cli, specifier_from_arn, target_group_name_from_arn
 
 if TYPE_CHECKING:
     from mypy_boto3_cloudwatch.type_defs import (
@@ -27,10 +26,12 @@ def analyze(lb_arn: str,
             tg_arn: str | None = None):
     data, path = _save_metrics_data(
         lb_arn, start_time, end_time, tg_arn=tg_arn)
-    _generate_graph(data, tg_arn)
+    _generate_graph(path.parent, data, tg_arn)
 
 
-def _generate_graph(data: list['MetricDataResultTypeDef'], tg_arn: str | None = None):
+def _generate_graph(basedir: Path,
+                    data: list['MetricDataResultTypeDef'],
+                    tg_arn: str | None = None):
     for item in data:
         label = item.get('Label')
         timestamps = item.get('Timestamps')
@@ -46,7 +47,8 @@ def _generate_graph(data: list['MetricDataResultTypeDef'], tg_arn: str | None = 
 
         if len(active_connection_timestamps) > 0:
             x_axis = np.arange(len(timestamps))
-            _create_graph(active_connection_timestamps,
+            _create_graph(basedir,
+                          active_connection_timestamps,
                           active_connection_values,
                           x_axis,
                           label,
@@ -59,7 +61,8 @@ def _addLabels(x: list[str], y: list[float]):
         plt.text(i, y[i], str(y[i]), ha='center')
 
 
-def _create_graph(abscissa: list[str],
+def _create_graph(basedir: Path,
+                  abscissa: list[str],
                   ordinate: list[float],
                   x_axis: np.ndarray,
                   itemLabel: str,
@@ -74,22 +77,10 @@ def _create_graph(abscissa: list[str],
     plt.ylabel(GRAPH_INFO[itemLabel]['YLABEL'])
     plt.plot(x_axis, ordinate, color="red")
 
-    suffix = _target_group_name_from_arn(tg_arn)
+    suffix = target_group_name_from_arn(tg_arn)
 
-    plt.savefig(f"./results/figures/{suffix}_{itemLabel}.pdf", dpi=400)
+    plt.savefig(basedir / f"{suffix}_{itemLabel}.png")
     # plt.show()
-
-
-def _target_group_name_from_arn(tg_arn: str | None):
-    if tg_arn is None:
-        tg_name = 'load_balancer'
-    elif CLUSTER_1_TARGET_NAME in tg_arn:
-        tg_name = 'tg1'
-    elif CLUSTER_2_TARGET_NAME in tg_arn:
-        tg_name = 'tg2'
-    else:
-        raise ValueError(f"Unknown target group: {tg_arn}")
-    return tg_name
 
 
 def _save_metrics_data(lb_arn: str,
@@ -97,11 +88,10 @@ def _save_metrics_data(lb_arn: str,
                        end_time: datetime,
                        tg_arn: str | None = None):
     data = _get_metric_data(lb_arn, start_time, end_time, tg_arn)
-    base_dir = Path(f'./results/{start_time}')
+    base_dir = Path(f"./results/{start_time.strftime(r'%Y-%m-%dT%H_%M')}")
     if not base_dir.exists():
         os.mkdir(base_dir)
-    filename = (f"{tg_arn.replace('/', '_')}.json"
-                if tg_arn is not None else 'load_balabcer.json')
+    filename = f"{target_group_name_from_arn(tg_arn)}.json"
     path = base_dir / filename
     with open(path, 'wb') as f:
         dump = orjson.dumps(data)

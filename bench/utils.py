@@ -3,6 +3,8 @@ import re
 
 import boto3
 
+from bench.config import CLUSTER_1_TARGET_NAME, CLUSTER_2_TARGET_NAME
+
 logger = logging.getLogger(__name__)
 
 elbv2_cli = boto3.client('elbv2')
@@ -46,3 +48,15 @@ def specifier_from_arn(arn: str):
     if search is None:
         raise RuntimeError(f"Could not match specifier regex in {arn}")
     return search.group()
+
+
+def target_group_name_from_arn(arn: str | None):
+    if arn is None:
+        tg_name = 'load_balancer'
+    elif CLUSTER_1_TARGET_NAME in arn:
+        tg_name = 'tg1'
+    elif CLUSTER_2_TARGET_NAME in arn:
+        tg_name = 'tg2'
+    else:
+        raise ValueError(f"Unknown target group: {arn}")
+    return tg_name
