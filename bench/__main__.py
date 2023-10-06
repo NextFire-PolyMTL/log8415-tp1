@@ -33,7 +33,7 @@ def main():
     tg2_arn = get_tg_arn(CLUSTER_2_TARGET_NAME)
     logger.info(f"{(tg1_arn, tg2_arn)=}")
     for tg_arn in (tg1_arn, tg2_arn):
-        analyze(lb_arn, tg_arn, start_time, end_time)
+        analyze(lb_arn, start_time, end_time, tg_arn)
 
     logger.info('Done. Please check the contents of the `./results` directory.')
 

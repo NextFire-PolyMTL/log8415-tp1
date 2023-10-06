@@ -14,33 +14,47 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def analyze(lb_arn: str, tg_arn: str, start_time: datetime, end_time: datetime):
-    data = _get_metric_data(lb_arn, tg_arn, start_time, end_time)
+def analyze(lb_arn: str,
+            start_time: datetime,
+            end_time: datetime,
+            tg_arn: str | None = None):
+    data, path = _save_metrics_data(lb_arn, start_time, end_time, tg_arn)
 
+
+def _save_metrics_data(lb_arn: str,
+                       start_time: datetime,
+                       end_time: datetime,
+                       tg_arn: str | None = None):
+    data = _get_metric_data(lb_arn, start_time, end_time, tg_arn)
     base_dir = Path(f'./results/{start_time}')
     if not base_dir.exists():
         os.mkdir(base_dir)
-    with open(base_dir / f"{tg_arn.replace('/', '_')}.json", 'wb') as f:
+    filename = (f"{tg_arn.replace('/', '_')}.json"
+                if tg_arn is not None else 'all.json')
+    path = base_dir / filename
+    with open(path, 'wb') as f:
         dump = orjson.dumps(data)
         f.write(dump)
+    return data, path
 
 
 def _get_metric_data(lb_arn: str,
-                     tg_arn: str,
                      start_time: datetime,
-                     end_time: datetime):
+                     end_time: datetime,
+                     tg_arn: str | None = None):
     lb_specifier = specifier_from_arn(lb_arn)
-    tg_specifier = specifier_from_arn(tg_arn)
     dimensions: list['DimensionTypeDef'] = [
         {
             'Name': 'LoadBalancer',
             'Value': lb_specifier
-        },
-        {
-            'Name': 'TargetGroup',
-            'Value': tg_specifier
         }
     ]
+    if tg_arn is not None:
+        tg_specifier = specifier_from_arn(tg_arn)
+        dimensions.append({
+            'Name': 'TargetGroup',
+            'Value': tg_specifier
+        })
     data = cw_cli.get_metric_data(
         MetricDataQueries=[
             {
