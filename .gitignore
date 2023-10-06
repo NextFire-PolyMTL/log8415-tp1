@@ -3,4 +3,4 @@ __pycache__/
 *.pem
 /results/*
 !/results/.gitkeep
-analyse/load_balancer_analysis.ipynb
+jupyter/*
