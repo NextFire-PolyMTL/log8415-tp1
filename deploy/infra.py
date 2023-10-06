@@ -2,7 +2,7 @@ import asyncio
 import logging
 from itertools import chain
 from typing import TYPE_CHECKING
-from benchmark.cloudWatch import save_load_balancer_metrics
+from benchmark.cloudWatch import save_load_balancer_metrics, save_targets_metrics
 
 from deploy.config import (
     AWS_KEY_PAIR_NAME,
@@ -32,7 +32,16 @@ async def setup_infra():
     lb = _setup_load_balancer(sg, vpc, instances_m4, instances_t2)
     cw = _setup_cloud_watch()
 
+    # Save load balancer metrics
     save_load_balancer_metrics(cw, lb)
+
+    # Save target group 1 metrics
+    tgn = 1
+    save_targets_metrics(cw, instances_m4, lb, tgn)
+
+    # Save target group 2 metrics
+    tgn = 2
+    save_targets_metrics(cw, instances_t2, lb, tgn)
 
     return instances_m4, instances_t2
 
