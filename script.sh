@@ -25,4 +25,4 @@ docker run --rm -it -v $HOME/.aws:/root/.aws:ro  -v $PWD/results:/src/results be
 open results/
 
 # Cleanup all AWS resources at the end
-# poetry run python3 -m deploy.cleanup
+poetry run python3 -m deploy.cleanup
