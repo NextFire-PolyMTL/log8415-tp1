@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 ec2_cli = boto3.client('ec2')
 ec2_res = boto3.resource('ec2')
 elbv2_cli = boto3.client('elbv2')
+cw_cli = boto3.client('cloudwatch')
 
 
 def get_default_vpc():

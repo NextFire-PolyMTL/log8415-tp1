@@ -2,6 +2,7 @@ import asyncio
 import logging
 from itertools import chain
 from typing import TYPE_CHECKING
+from benchmark.cloudWatch import save_load_balancer_metrics
 
 from deploy.config import (
     AWS_KEY_PAIR_NAME,
@@ -12,7 +13,7 @@ from deploy.config import (
     M4_L_NB,
     T2_L_NB,
 )
-from deploy.utils import ec2_cli, ec2_res, elbv2_cli, get_default_vpc, wait_instance
+from deploy.utils import ec2_cli, ec2_res, elbv2_cli, get_default_vpc, wait_instance, cw_cli
 
 if TYPE_CHECKING:
     from mypy_boto3_ec2.service_resource import Instance, KeyPair, SecurityGroup, Vpc
@@ -28,7 +29,11 @@ async def setup_infra():
     async with asyncio.TaskGroup() as tg:
         for inst in chain(instances_m4, instances_t2):
             tg.create_task(asyncio.to_thread(wait_instance, inst))
-    _setup_load_balancer(sg, vpc, instances_m4, instances_t2)
+    lb = _setup_load_balancer(sg, vpc, instances_m4, instances_t2)
+    cw = _setup_cloud_watch()
+
+    save_load_balancer_metrics(cw, lb)
+
     return instances_m4, instances_t2
 
 
@@ -201,3 +206,12 @@ def _create_target_group(name: str, vpc: 'Vpc', instances: list['Instance']):
         {'Id': inst.id, 'Port': 80} for inst in instances
     ])
     return arn
+
+
+# sg: 'SecurityGroup',
+#                          vpc: 'Vpc',
+#                          cluster1_instances: list['Instance'],
+#                          cluster2_instances: list['Instance']
+def _setup_cloud_watch():
+    logger.info('Setting up cloud watch')
+    return cw_cli
