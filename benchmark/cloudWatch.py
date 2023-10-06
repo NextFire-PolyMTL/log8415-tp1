@@ -8,9 +8,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 def save_data(json_file_name, data):
-
-    logger.info(data)
-
     dir = json_file_name[:json_file_name.rfind('/')]
     if not os.path.exists(dir):
         os.makedirs(dir)

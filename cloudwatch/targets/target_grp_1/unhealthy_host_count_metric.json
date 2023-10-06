@@ -2,8 +2,8 @@
     "Messages": [],
     "MetricDataResults": [
         {
-            "Id": "myrequest_ConsumedLCUs",
-            "Label": "ConsumedLCUs",
+            "Id": "myrequest_UnHealthyHostCount",
+            "Label": "UnHealthyHostCount",
             "StatusCode": "Complete",
             "Timestamps": [],
             "Values": []
@@ -11,13 +11,13 @@
     ],
     "ResponseMetadata": {
         "HTTPHeaders": {
-            "content-length": "515",
+            "content-length": "527",
             "content-type": "text/xml",
-            "date": "Fri, 06 Oct 2023 00:59:44 GMT",
-            "x-amzn-requestid": "10020ed0-003f-4fef-86e6-074a8fedd8cd"
+            "date": "Fri, 06 Oct 2023 00:59:47 GMT",
+            "x-amzn-requestid": "bcc039e3-3fe0-46fc-8a63-b0d27661d2fb"
         },
         "HTTPStatusCode": 200,
-        "RequestId": "10020ed0-003f-4fef-86e6-074a8fedd8cd",
+        "RequestId": "bcc039e3-3fe0-46fc-8a63-b0d27661d2fb",
         "RetryAttempts": 0
     }
 }

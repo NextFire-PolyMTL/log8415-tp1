@@ -2,8 +2,8 @@
     "Messages": [],
     "MetricDataResults": [
         {
-            "Id": "myrequest_ConsumedLCUs",
-            "Label": "ConsumedLCUs",
+            "Id": "myrequest_TargetResponseTime",
+            "Label": "TargetResponseTime",
             "StatusCode": "Complete",
             "Timestamps": [],
             "Values": []
@@ -11,13 +11,13 @@
     ],
     "ResponseMetadata": {
         "HTTPHeaders": {
-            "content-length": "515",
+            "content-length": "527",
             "content-type": "text/xml",
-            "date": "Fri, 06 Oct 2023 00:59:44 GMT",
-            "x-amzn-requestid": "10020ed0-003f-4fef-86e6-074a8fedd8cd"
+            "date": "Fri, 06 Oct 2023 00:59:48 GMT",
+            "x-amzn-requestid": "4e2a2a19-d396-4fe2-8e23-a3138760bf6c"
         },
         "HTTPStatusCode": 200,
-        "RequestId": "10020ed0-003f-4fef-86e6-074a8fedd8cd",
+        "RequestId": "4e2a2a19-d396-4fe2-8e23-a3138760bf6c",
         "RetryAttempts": 0
     }
 }

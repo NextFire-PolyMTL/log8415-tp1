@@ -2,8 +2,8 @@
     "Messages": [],
     "MetricDataResults": [
         {
-            "Id": "myrequest_ConsumedLCUs",
-            "Label": "ConsumedLCUs",
+            "Id": "myrequest_TargetConnectionErrorCount",
+            "Label": "TargetConnectionErrorCount",
             "StatusCode": "Complete",
             "Timestamps": [],
             "Values": []
@@ -11,13 +11,13 @@
     ],
     "ResponseMetadata": {
         "HTTPHeaders": {
-            "content-length": "515",
+            "content-length": "543",
             "content-type": "text/xml",
-            "date": "Fri, 06 Oct 2023 00:59:44 GMT",
-            "x-amzn-requestid": "10020ed0-003f-4fef-86e6-074a8fedd8cd"
+            "date": "Fri, 06 Oct 2023 00:59:48 GMT",
+            "x-amzn-requestid": "cf2f806c-9896-4ec3-94ac-b7ae8355907f"
         },
         "HTTPStatusCode": 200,
-        "RequestId": "10020ed0-003f-4fef-86e6-074a8fedd8cd",
+        "RequestId": "cf2f806c-9896-4ec3-94ac-b7ae8355907f",
         "RetryAttempts": 0
     }
 }
