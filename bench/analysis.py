@@ -4,17 +4,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import orjson
-import json
+import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.pyplot as pyplot
+import orjson
 
-from bench.constants import *
-
+from bench.config import CLUSTER_1_TARGET_NAME, CLUSTER_2_TARGET_NAME
+from bench.constants import GRAPH_INFO
 from bench.utils import cw_cli, specifier_from_arn
 
 if TYPE_CHECKING:
-    from mypy_boto3_cloudwatch.type_defs import DimensionTypeDef
+    from mypy_boto3_cloudwatch.type_defs import (
+        DimensionTypeDef,
+        MetricDataResultTypeDef,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -23,55 +25,72 @@ def analyze(lb_arn: str,
             start_time: datetime,
             end_time: datetime,
             tg_arn: str | None = None):
-    data, path = _save_metrics_data(lb_arn, start_time, end_time, tg_arn)
-    _generate_graph(path, tg_arn)
+    data, path = _save_metrics_data(
+        lb_arn, start_time, end_time, tg_arn=tg_arn)
+    _generate_graph(data, tg_arn)
 
 
-def _generate_graph(path, tg_arn: str | None = None):
-    with open(path, 'r') as f:
-      data = json.load(f)
-
+def _generate_graph(data: list['MetricDataResultTypeDef'], tg_arn: str | None = None):
     for item in data:
-        timeStamps = item.get('Timestamps')
+        label = item.get('Label')
+        timestamps = item.get('Timestamps')
         values = item.get('Values')
 
-        active_connection_timestamps = list(reversed(timeStamps)) 
-        active_connection_values = list(reversed(values)) 
-        x_axis = np.arange(len(timeStamps))
-        if active_connection_timestamps not in [None, []]:
-            _create_graph(active_connection_timestamps, active_connection_values, x_axis, item.get('Label'), tg_arn)
+        if label is None or timestamps is None or values is None:
+            raise ValueError(
+                f"Missing label, timestamps or values for {item=}")
+
+        active_connection_timestamps = list(
+            map(lambda t: t.strftime(r'%Y-%m-%d %H:%M'), reversed(timestamps)))
+        active_connection_values = list(reversed(values))
+
+        if len(active_connection_timestamps) > 0:
+            x_axis = np.arange(len(timestamps))
+            _create_graph(active_connection_timestamps,
+                          active_connection_values,
+                          x_axis,
+                          label,
+                          tg_arn)
 
 
-# function to add value labels in the graph
-def _addLabels(pyplot, x,y):
+def _addLabels(x: list[str], y: list[float]):
+    """Add value labels in the graph"""
     for i in range(len(x)):
-        pyplot.text(i, y[i], y[i], ha = 'center')
+        plt.text(i, y[i], str(y[i]), ha='center')
 
-def _create_graph(abscissa, ordinate, x_axis, itemLabel, tg_arn: str | None = None):
-    fig = pyplot.figure(figsize=(10,10))
-    #fig.suptitle(GRAPH_INFO[itemLabel]['TITLE'])
+
+def _create_graph(abscissa: list[str],
+                  ordinate: list[float],
+                  x_axis: np.ndarray,
+                  itemLabel: str,
+                  tg_arn: str | None = None):
+    fig = plt.figure(figsize=(10, 10))
+    # fig.suptitle(GRAPH_INFO[itemLabel]['TITLE'])
     ax = fig.add_subplot(111)
     ax.bar(abscissa, ordinate)
-    ax.set_xticklabels(abscissa,rotation = 45)
-    _addLabels(pyplot,abscissa, ordinate)
-    pyplot.xlabel(GRAPH_INFO[itemLabel]['XLABEL'])
-    pyplot.ylabel(GRAPH_INFO[itemLabel]['YLABEL'])
-    pyplot.plot(x_axis, ordinate, color="red")
-    
+    ax.set_xticklabels(abscissa, rotation=45)
+    _addLabels(abscissa, ordinate)
+    plt.xlabel(GRAPH_INFO[itemLabel]['XLABEL'])
+    plt.ylabel(GRAPH_INFO[itemLabel]['YLABEL'])
+    plt.plot(x_axis, ordinate, color="red")
+
     suffix = _target_group_name_from_arn(tg_arn)
 
-    pyplot.savefig(f"./results/figures/{suffix}_{itemLabel}.pdf", dpi=400)
-   # pyplot.show()
+    plt.savefig(f"./results/figures/{suffix}_{itemLabel}.pdf", dpi=400)
+    # plt.show()
 
 
-def _target_group_name_from_arn(tg_arn):
-    tg_name = 'load_balancer'
-    if tg_arn is not None and 'Lab1-1' in tg_arn:
+def _target_group_name_from_arn(tg_arn: str | None):
+    if tg_arn is None:
+        tg_name = 'load_balancer'
+    elif CLUSTER_1_TARGET_NAME in tg_arn:
         tg_name = 'tg1'
-    elif tg_arn is not None and 'Lab1-2' in tg_arn:
-         tg_name = 'tg2'
+    elif CLUSTER_2_TARGET_NAME in tg_arn:
+        tg_name = 'tg2'
+    else:
+        raise ValueError(f"Unknown target group: {tg_arn}")
     return tg_name
-    
+
 
 def _save_metrics_data(lb_arn: str,
                        start_time: datetime,
