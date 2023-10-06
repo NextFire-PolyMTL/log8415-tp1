@@ -1,0 +1,23 @@
+{
+    "Messages": [],
+    "MetricDataResults": [
+        {
+            "Id": "myrequest_HTTP_Redirect_Count",
+            "Label": "HTTP_Redirect_Count",
+            "StatusCode": "Complete",
+            "Timestamps": [],
+            "Values": []
+        }
+    ],
+    "ResponseMetadata": {
+        "HTTPHeaders": {
+            "content-length": "529",
+            "content-type": "text/xml",
+            "date": "Fri, 06 Oct 2023 00:50:55 GMT",
+            "x-amzn-requestid": "3be40ff1-4d76-414e-83fb-fab05c0f6663"
+        },
+        "HTTPStatusCode": 200,
+        "RequestId": "3be40ff1-4d76-414e-83fb-fab05c0f6663",
+        "RetryAttempts": 0
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "Messages": [],
+    "MetricDataResults": [
+        {
+            "Id": "myrequest_RuleEvaluations",
+            "Label": "RuleEvaluations",
+            "StatusCode": "Complete",
+            "Timestamps": [],
+            "Values": []
+        }
+    ],
+    "ResponseMetadata": {
+        "HTTPHeaders": {
+            "content-length": "521",
+            "content-type": "text/xml",
+            "date": "Fri, 06 Oct 2023 00:50:56 GMT",
+            "x-amzn-requestid": "5a12e9d5-6143-4bb0-9024-b52ea9d2c45a"
+        },
+        "HTTPStatusCode": 200,
+        "RequestId": "5a12e9d5-6143-4bb0-9024-b52ea9d2c45a",
+        "RetryAttempts": 0
+    }
+}

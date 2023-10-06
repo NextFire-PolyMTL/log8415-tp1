@@ -1,0 +1,23 @@
+{
+    "Messages": [],
+    "MetricDataResults": [
+        {
+            "Id": "myrequest_ActiveConnectionCount",
+            "Label": "ActiveConnectionCount",
+            "StatusCode": "Complete",
+            "Timestamps": [],
+            "Values": []
+        }
+    ],
+    "ResponseMetadata": {
+        "HTTPHeaders": {
+            "content-length": "533",
+            "content-type": "text/xml",
+            "date": "Fri, 06 Oct 2023 00:50:55 GMT",
+            "x-amzn-requestid": "17c1bc5a-e9db-405b-9a1e-4769ad0fbaf6"
+        },
+        "HTTPStatusCode": 200,
+        "RequestId": "17c1bc5a-e9db-405b-9a1e-4769ad0fbaf6",
+        "RetryAttempts": 0
+    }
+}

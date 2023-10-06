@@ -29,19 +29,20 @@ async def setup_infra():
     async with asyncio.TaskGroup() as tg:
         for inst in chain(instances_m4, instances_t2):
             tg.create_task(asyncio.to_thread(wait_instance, inst))
-    lb = _setup_load_balancer(sg, vpc, instances_m4, instances_t2)
+            
+    lb_arn, tg1_arn, tg2_arn  = _setup_load_balancer(sg, vpc, instances_m4, instances_t2)
     cw = _setup_cloud_watch()
 
     # Save load balancer metrics
-    save_load_balancer_metrics(cw, lb)
+    save_load_balancer_metrics(cw, lb_arn)
 
     # Save target group 1 metrics
     tgn = 1
-    save_targets_metrics(cw, instances_m4, lb, tgn)
+    save_targets_metrics(cw, tg1_arn, lb_arn, tgn)
 
     # Save target group 2 metrics
     tgn = 2
-    save_targets_metrics(cw, instances_t2, lb, tgn)
+    save_targets_metrics(cw, tg2_arn, lb_arn, tgn)
 
     return instances_m4, instances_t2
 
@@ -197,7 +198,7 @@ def _setup_load_balancer(sg: 'SecurityGroup',
         ],
     )
 
-    return lb_arn
+    return lb_arn, tg1_arn, tg2_arn
 
 
 def _create_target_group(name: str, vpc: 'Vpc', instances: list['Instance']):
