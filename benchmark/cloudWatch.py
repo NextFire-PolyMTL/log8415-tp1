@@ -262,7 +262,7 @@ def HTTPCode_Target_2XX_Count_metric(cloudwatch_client, lbstring, StartTime, End
 
 
 ###################################################################################################################
-#                                             Get metrics
+#                                             Save Load balancer metrics
 ###################################################################################################################
 
 def save_load_balancer_metrics(cloud_watch, load_balancer_arn):
@@ -300,3 +300,5 @@ def save_load_balancer_metrics(cloud_watch, load_balancer_arn):
 
     data = HTTPCode_Target_2XX_Count_metric(cloud_watch, lbstring=lbstring2, StartTime=StartTime, EndTime=EndTime)
     save_data("metrics/cloudwatch/load_balancer/http_code_target_2xx_metric.json", data)
+
+    print("Enregistrement des metrics du Load balancer dans CloudWatch :::: done ....")
