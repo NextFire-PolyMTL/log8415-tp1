@@ -3,8 +3,8 @@
 ### Prerequisites (Linux/macOS) ###
 # - Python 3.11
 # - Poetry (https://python-poetry.org/docs/#installation)
-# - AWS credentials configured in ~/.aws/credentials
 # - Docker (https://docs.docker.com/get-docker/)
+# - AWS credentials configured in ~/.aws/credentials
 
 # Setup the virtual environment with all dependencies (including dev ones)
 poetry install

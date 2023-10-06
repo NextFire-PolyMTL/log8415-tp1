@@ -1,6 +1,6 @@
 # log8415-tp1
 
-**Prerequisites:** [Python 3.11](https://www.python.org), [Poetry](https://python-poetry.org/) and [Docker](https://www.docker.com/)
+**Prerequisites:** [Python 3.11](https://www.python.org), [Poetry](https://python-poetry.org/) and [Docker](https://www.docker.com/). AWS credentials must be configured in `~/.aws/credentials`.
 
 To setup the venv and install all dependencies:
 
